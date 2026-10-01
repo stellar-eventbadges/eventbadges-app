@@ -7,13 +7,15 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 
 - [x] Repository governance: AGENTS.md, CONTRIBUTING.md, ROADMAP.md, LICENSE,
       .gitignore, .gitattributes (2026-10-01).
-- [ ] v0 app — **blocked on the playbook file, see below.**
+- [ ] v0 app from the project's playbook section (screens below).
 
 ## Next
 
 - [ ] Vite + React + TypeScript scaffold, strict mode, `.env`-only
       configuration, testnet refusal paths.
-- [ ] Pages per the project's playbook section 9 (shared app prompt):
+- [ ] Pages per `STELLAR-BUILD-PLAYBOOK-v3.md` section 9 (shared app
+      prompt in section 4; file present in
+      `~/Desktop/Drips/_reference/playbooks/`, confirmed 2026-10-02):
       TESTNET banner on every screen, error mapping from the contract repo's
       `ERRORS.md`, transaction hash and explorer link after every action,
       local wallet icons, Stellar-only wallet kit module set, mobile-first
@@ -23,17 +25,20 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 - [ ] CI (`web.yml`): lint, type-check, tests, production build. Lands with
       the first code that can pass it.
 
-## Blocked on the playbook
+## v0 screens (from playbook section 9)
 
-The screens and flows for v0 are defined in the playbook, which was not found
-on this machine at Session 0. Until Tim supplies it, no feature scope is
-invented here.
+- Organizer: create an event, show a claim code or QR, see the claim count.
+- Attendee: enter or scan a code, claim, see their badges.
+- Public: verify that an address holds a badge for an event.
+
+Known app gaps, deliberately out of v0: badge artwork, share-to-social card,
+CSV export of attendees (opt-in only).
 
 ## Decisions needed from Tim
 
-1. **Playbook location.** Provide
-   `~/Desktop/Drips/_reference/playbooks/STELLAR-BUILD-PLAYBOOK-v3.md` so the
-   shared app prompt (section 4) can scope v0.
+1. **Playbook v3 section 4 vs v4 AGENTS.md.** v3 section 4 is the shared app
+   prompt and defines the v0 screens; v4 supersedes v3's AGENTS.md layer.
+   Build v0 from v3 section 4 plus the v4 layer, or wait for Tim's call.
 
 ## Explicitly out of scope
 
