@@ -36,9 +36,9 @@ CSV export of attendees (opt-in only).
 
 ## Decisions needed from Tim
 
-1. **Playbook v3 section 4 vs v4 AGENTS.md.** v3 section 4 is the shared app
-   prompt and defines the v0 screens; v4 supersedes v3's AGENTS.md layer.
-   Build v0 from v3 section 4 plus the v4 layer, or wait for Tim's call.
+1. **Build standard — decided (2026-10-02).** v3 sections 4 and 9 are the
+   scope authority for what the app shows; v4 plus the schoolfees repos are
+   the standard for how it is built (doc set, AGENTS.md, CI, checkers).
 
 ## Explicitly out of scope
 
