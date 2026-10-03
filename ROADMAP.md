@@ -19,8 +19,11 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       `scripts/deploy-testnet.sh`, pilot gate), then end-to-end tests
       (draft 08), then a real wallet connect + claim (draft 10).
 - [ ] Everything in [docs/issue-drafts/](docs/issue-drafts/), prioritised by
-      what the first pilot actually needs: QR claim code (01), mobile wallet
-      story (10), code-split (07), advisory decision (06), and the rest.
+      what the first pilot actually needs: the attendee privacy notice (11)
+      first, because a claim flow that publishes the claim code without saying
+      so should not be used on a real person; then the QR claim code (01),
+      mobile wallet story (10), code-split (07), advisory decision (06), and
+      the rest.
 
 ## v0 screens (from playbook section 9) — built
 
@@ -75,12 +78,22 @@ repos, so they stay in sync.
       be pointed at this system without the organizer fully understanding
       everything is public. Make it operational: is "no under-18 events in a
       pilot" a hard rule, who checks, and what does the organizer attest to?
-- [ ] **What attendees are told.** What must a person be told before they
-      claim: that their address, the timing and the obscured event name are
-      public and linkable, that nothing is deletable, and that anyone
-      worldwide can verify? Who delivers that notice — the app, the
-      organizer, both — and is a missing notice a blocker for the first
-      pilot?
+- [ ] **What attendees are told — copy drafted (2026-10-03), decisions
+      open.** The text is answered in
+      [docs/attendee-notice.md](docs/attendee-notice.md), with every line traced
+      to the code that makes it true: a short on-screen version with a required
+      acknowledgement, a full version one tap away, and the paragraph nobody
+      had written — **the claim code is published inside the `claim`
+      transaction and is permanent**, which the docs book currently denies.
+      Implementing it is draft 11. Four decisions remain, and none of them is a
+      copy question: who delivers it (the app, the organizer, or both —
+      recommended both, with the organizer pointing at this text rather than
+      writing their own); whether a missing notice blocks the first pilot
+      (recommended yes — a claim is an irreversible public write of a linkable
+      identifier, and the claim-code paragraph cannot be consented to if it was
+      never disclosed); whether to change the contract instead of disclosing
+      the exposure (bigger than this repo should decide alone); and whether an
+      acknowledgement recorded nowhere should be described as consent.
 - [ ] **Third parties in the path.** The app sends addresses — and the claim
       code inside the public `claim` transaction — to the Stellar RPC
       endpoint, and explorers index events. How are RPC operators and

@@ -17,5 +17,6 @@ becomes an issue.
 | [08 — End-to-end tests against testnet](08-end-to-end-tests-against-testnet.md) | ci | medium |
 | [09 — Restore an archived event record](09-restore-archived-records.md) | app | hard |
 | [10 — Claiming on a phone: the mobile wallet story is untested](10-claiming-on-a-phone.md) | app | medium |
+| [11 — Show the attendee privacy notice before a wallet signs](11-attendee-privacy-notice.md) | app | medium |
 
 Each one is also carried in [ROADMAP.md](https://github.com/stellar-eventbadges/eventbadges-app/blob/main/ROADMAP.md).
