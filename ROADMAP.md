@@ -88,19 +88,20 @@ repos, so they stay in sync.
       had written — **the claim code is published inside the `claim`
       transaction and is permanent**, which the docs book currently denies.
       **Partly delivered 2026-10-03:** the copy exists and is implemented on the
-      claim screen (draft 11), so the "what must a person be told" half of the
-      question is answered. Four decisions remain, and none of them is a copy
-      question: who delivers it (the app, the organizer, or both —
-      recommended both, with the organizer pointing at this text rather than
-      writing their own); whether a missing notice blocks the first pilot
-      (recommended yes — a claim is an irreversible public write of a linkable
-      identifier, and the claim-code paragraph cannot be consented to if it was
-      never disclosed); whether to change the contract instead of disclosing
-      the exposure (bigger than any one repo should decide alone); and whether
-      an acknowledgement recorded nowhere should be described as consent.
-      Shipping the notice settles none of them — the gate is `aria-disabled`
-      plus a refusal in `submitClaim`, recorded nowhere, which is deliberate
-      rather than a stopgap.
+      claim screen
+      ([draft 11](docs/issue-drafts/11-attendee-privacy-notice.md)), so the
+      "what must a person be told" half of the question is answered. Four
+      decisions remain, and none of them is a copy question: who delivers it
+      (the app, the organizer, or both — recommended both, with the organizer
+      pointing at this text rather than writing their own); whether a missing
+      notice blocks the first pilot (recommended yes — a claim is an
+      irreversible public write of a linkable identifier, and the claim-code
+      paragraph cannot be consented to if it was never disclosed); whether to
+      change the contract instead of disclosing the exposure (bigger than any
+      one repo should decide alone); and whether an acknowledgement recorded
+      nowhere should be described as consent. Shipping the notice settles none
+      of them — the gate is `aria-disabled` plus a refusal in `submitClaim`,
+      recorded nowhere, which is deliberate rather than a stopgap.
 - [ ] **Third parties in the path.** The app sends addresses — and the claim
       code inside the public `claim` transaction — to the Stellar RPC
       endpoint, and explorers index events. How are RPC operators and
