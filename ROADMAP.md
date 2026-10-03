@@ -7,38 +7,39 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 
 - [x] Repository governance: AGENTS.md, CONTRIBUTING.md, ROADMAP.md, LICENSE,
       .gitignore, .gitattributes (2026-10-01).
-- [ ] v0 app from the project's playbook section (screens below).
+- [x] v0 app from the project's playbook section (2026-10-03): scaffold,
+      all three screens, wallet kit, testnet banner, error map, local wallet
+      icons, CI, unit + render + axe tests. **Never run against a deployed
+      contract; nothing is proven on a network** — see the README's
+      "what is proven vs assumed".
 
 ## Next
 
-- [ ] Vite + React + TypeScript scaffold, strict mode, `.env`-only
-      configuration, testnet refusal paths.
-- [ ] Pages per `STELLAR-BUILD-PLAYBOOK-v3.md` section 9 (shared app
-      prompt in section 4; file present in
-      `~/Desktop/Drips/_reference/playbooks/`, confirmed 2026-10-02):
-      TESTNET banner on every screen, error mapping from the contract repo's
-      `ERRORS.md`, transaction hash and explorer link after every action,
-      local wallet icons, Stellar-only wallet kit module set, mobile-first
-      accessible markup.
-- [ ] Unit tests for pure logic in `src/lib/`; render tests with an automated
-      axe-core check (the schoolfees standard).
-- [ ] CI (`web.yml`): lint, type-check, tests, production build. Lands with
-      the first code that can pass it.
+- [ ] Prove the app against the real thing, in this order: deploy (human, via
+      `scripts/deploy-testnet.sh`, pilot gate), then end-to-end tests
+      (draft 08), then a real wallet connect + claim (draft 10).
+- [ ] Everything in [docs/issue-drafts/](docs/issue-drafts/), prioritised by
+      what the first pilot actually needs: QR claim code (01), mobile wallet
+      story (10), code-split (07), advisory decision (06), and the rest.
 
-## v0 screens (from playbook section 9)
+## v0 screens (from playbook section 9) — built
 
-- Organizer: create an event, show a claim code or QR, see the claim count.
-- Attendee: enter or scan a code, claim, see their badges.
-- Public: verify that an address holds a badge for an event.
+- Organizer: create an event, show a claim code (QR is draft 01), see the
+  claim count, award and revoke.
+- Attendee: enter a code (scanning is draft 02), claim, see badges.
+- Public: verify that an address holds a badge for an event, no wallet needed.
 
-Known app gaps, deliberately out of v0: badge artwork, share-to-social card,
-CSV export of attendees (opt-in only).
+Known app gaps, deliberately out of v0 and drafted: badge artwork (03),
+share-to-social card (04), CSV export of attendees (05, opt-in only), restore
+of archived records (09).
 
 ## Decisions needed from Tim
 
 1. **Build standard — decided (2026-10-02).** v3 sections 4 and 9 are the
    scope authority for what the app shows; v4 plus the schoolfees repos are
    the standard for how it is built (doc set, AGENTS.md, CI, checkers).
+2. **Wallet kit advisories — drafted, not decided (2026-10-03).** Accept and
+   document, pin, or narrow further: draft 06.
 
 ## Explicitly out of scope
 
