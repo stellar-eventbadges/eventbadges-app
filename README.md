@@ -23,7 +23,7 @@ Part of the eventbadges project, which is three repositories:
 |---|---|---|
 | Home | anyone | Explains the flow, connects a wallet, states what has not happened yet |
 | Organizer | organizer | Records an event (name hash, cap, deadline), generates and shows the claim code once, then awards or revokes badges |
-| Claim | attendee | Claims a badge with the organizer's code, then lists the badges an address holds for an event |
+| Claim | attendee | Shows the privacy notice, claims a badge with the organizer's code once acknowledged, then lists the badges an address holds for an event |
 | Verify | anyone, no wallet | Checks that an address holds a badge for an event, and shows the record |
 
 Contract functions are called exactly as named in `src/lib.rs` in
@@ -44,6 +44,12 @@ Contract functions are called exactly as named in `src/lib.rs` in
   SHA-256 goes into the transaction. The code is shown once and kept nowhere.
 - Every action that produces a transaction shows the **transaction hash and an
   explorer link**.
+- **The claim screen shows a privacy notice and will not sign until it is
+  acknowledged.** The wording lives in `src/lib/privacyNotice.ts`, is traced
+  sentence by sentence to the code in
+  [docs/attendee-notice.md](docs/attendee-notice.md), and says plainly that
+  **the claim code is published in the transaction and is permanent** — which
+  is true of the contract today and is the reason the notice exists.
 - **No analytics, no trackers, no third-party scripts, no backend.** The app
   sends nothing anywhere except to the Stellar RPC endpoint from `.env`, and
   the wallet picker's icons are served from local files so opening it makes no
@@ -145,6 +151,11 @@ Read this before trusting the app with anything.
   app. The kit's picker is filtered to eight Stellar wallets with local icons,
   but connect, sign and the network re-read have not been run. The mobile
   story in particular is untested (draft 10).
+- **The privacy notice has never been read by anyone.** It is unit-tested,
+  render-tested and axe-checked, and it is the honest account of what the
+  contract does — but it has not been shown to a person, let alone a lawyer,
+  an accessibility user, or someone in a queue wanting a badge. Whether it is
+  an adequate notice is an open question in `ROADMAP.md`, not a solved one.
 - The deployment script (`scripts/deploy-testnet.sh`) has never been run.
 - There has been **no security review or audit**. Do not treat this as safe for
   real money — it is not, and it does not handle real money.

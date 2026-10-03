@@ -1,7 +1,23 @@
 # Show the attendee privacy notice before a wallet signs
 
+**Status:** implemented 2026-10-03 — kept for the reasoning, not as open work
 **Difficulty:** medium
 **Labels:** help wanted, area:app
+
+> **What landed.** `src/lib/privacyNotice.ts` holds the copy,
+> `src/components/PrivacyNotice.tsx` renders the short notice, an in-place
+> toggle for the full one and the labelled checkbox, and `AttendeePage` gates
+> the claim button on it. The gate uses `aria-disabled` plus a refusal in
+> `submitClaim`, rather than the `disabled` attribute, so the button stays
+> focusable and its explanation stays reachable — a deliberately narrower
+> reading of "disabled" than the acceptance criteria below first suggested.
+> Everything else in the criteria is met.
+>
+> **Still open, and not a copy question:** the four decisions in
+> `docs/attendee-notice.md` — who delivers the notice, whether a missing one
+> blocks the first pilot, whether to change the contract instead of disclosing
+> the exposure, and whether an acknowledgement recorded nowhere may be called
+> consent. They live under "Decisions needed from Tim" in `ROADMAP.md`.
 
 ## Problem
 

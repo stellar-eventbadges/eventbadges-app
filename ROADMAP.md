@@ -18,12 +18,14 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 - [ ] Prove the app against the real thing, in this order: deploy (human, via
       `scripts/deploy-testnet.sh`, pilot gate), then end-to-end tests
       (draft 08), then a real wallet connect + claim (draft 10).
-- [ ] Everything in [docs/issue-drafts/](docs/issue-drafts/), prioritised by
-      what the first pilot actually needs: the attendee privacy notice (11)
-      first, because a claim flow that publishes the claim code without saying
-      so should not be used on a real person; then the QR claim code (01),
-      mobile wallet story (10), code-split (07), advisory decision (06), and
-      the rest.
+- [x] Attendee privacy notice on the claim screen, gating the claim button on
+      an explicit acknowledgement (2026-10-03, draft 11). Short notice plus an
+      in-place full version, copy in `src/lib/privacyNotice.ts`, axe-checked.
+      **Never shown to a person** — see the README's proven-vs-assumed.
+- [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
+      by what the first pilot actually needs: the QR claim code (01), mobile
+      wallet story (10), code-split (07), advisory decision (06), and the
+      rest.
 
 ## v0 screens (from playbook section 9) — built
 
@@ -85,15 +87,20 @@ repos, so they stay in sync.
       acknowledgement, a full version one tap away, and the paragraph nobody
       had written — **the claim code is published inside the `claim`
       transaction and is permanent**, which the docs book currently denies.
-      Implementing it is draft 11. Four decisions remain, and none of them is a
-      copy question: who delivers it (the app, the organizer, or both —
+      **Partly delivered 2026-10-03:** the copy exists and is implemented on the
+      claim screen (draft 11), so the "what must a person be told" half of the
+      question is answered. Four decisions remain, and none of them is a copy
+      question: who delivers it (the app, the organizer, or both —
       recommended both, with the organizer pointing at this text rather than
       writing their own); whether a missing notice blocks the first pilot
       (recommended yes — a claim is an irreversible public write of a linkable
       identifier, and the claim-code paragraph cannot be consented to if it was
       never disclosed); whether to change the contract instead of disclosing
       the exposure (bigger than this repo should decide alone); and whether an
-      acknowledgement recorded nowhere should be described as consent.
+      acknowledgement recorded nowhere should be described as consent. Shipping
+      the notice settles none of them — the gate is `aria-disabled` plus a
+      refusal in `submitClaim`, recorded nowhere, which is deliberate rather
+      than a stopgap.
 - [ ] **Third parties in the path.** The app sends addresses — and the claim
       code inside the public `claim` transaction — to the Stellar RPC
       endpoint, and explorers index events. How are RPC operators and

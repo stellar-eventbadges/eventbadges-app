@@ -30,10 +30,19 @@ import {
   textOf,
   walletFactory,
 } from '../test/render';
+import { CLAIM_CODE_WARNING, NOTICE_ACK_LABEL, NOTICE_GATE_HINT } from '../lib/privacyNotice';
 
 import { AttendeePage } from './AttendeePage';
 
 const CODE = 'ab'.repeat(32); // 64 hexadecimal characters, synthetic.
+
+/** Ticks the privacy acknowledgement, which gates the claim button. */
+async function acknowledge(
+  user: ReturnType<typeof userEvent.setup>,
+  view: ReturnType<typeof renderOnly>,
+): Promise<void> {
+  await user.click(view.getByRole('checkbox', { name: NOTICE_ACK_LABEL }));
+}
 
 describe('<AttendeePage />', () => {
   it('asks for a wallet before anything else', () => {
@@ -50,6 +59,7 @@ describe('<AttendeePage />', () => {
     const submit = vi.spyOn(client, 'submit');
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
 
+    await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
     const alerts = await view.findAllByRole('alert');
@@ -66,6 +76,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code (64 hex characters)'), 'abc');
+    await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
     const alert = await view.findByRole('alert');
@@ -83,6 +94,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
     expect(await view.findByText('Badge claimed')).not.toBeNull();
@@ -97,6 +109,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
     const alert = await view.findByRole('alert');
@@ -127,6 +140,32 @@ describe('<AttendeePage />', () => {
     await user.click(view.getByRole('button', { name: 'Show badges' }));
 
     expect(await view.findByText('No badges found for this address on that event id.')).not.toBeNull();
+  });
+
+  it('shows the claim-code warning on the claim screen itself', () => {
+    const view = renderOnly(<AttendeePage {...pagePropsFactory()} />);
+    expect(textOf(view.container)).toContain(CLAIM_CODE_WARNING);
+  });
+
+  it('gates the claim button until the notice is acknowledged', async () => {
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory()]);
+    const submit = vi.spyOn(client, 'submit');
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+
+    const button = view.getByRole('button', { name: 'Claim my badge' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(textOf(view.container)).toContain(NOTICE_GATE_HINT);
+
+    // A fully valid claim, refused because the notice was not acknowledged.
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.click(button);
+    expect(submit).not.toHaveBeenCalled();
+
+    await acknowledge(user, view);
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(textOf(view.container)).not.toContain(NOTICE_GATE_HINT);
   });
 
   it('passes the accessibility check disconnected and connected', async () => {

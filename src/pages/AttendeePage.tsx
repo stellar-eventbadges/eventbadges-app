@@ -4,12 +4,14 @@ import { BadgeCard } from '../components/BadgeCard';
 import { ConnectPrompt } from '../components/ConnectPrompt';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { Field } from '../components/Field';
+import { PrivacyNotice } from '../components/PrivacyNotice';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
 import type { BadgeRecord } from '../lib/badge';
 import { hexToBytes, validateClaimCode } from '../lib/claimCode';
 import type { SubmitResult } from '../lib/contract';
 import { runWrite } from '../lib/flow';
+import { NOTICE_GATE_HINT } from '../lib/privacyNotice';
 import { validateAccountAddress, validateEventId } from '../lib/validation';
 import type { PageProps } from './shared';
 
@@ -24,6 +26,11 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
   const [lookupAddress, setLookupAddress] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [badges, setBadges] = useState<BadgeRecord[] | null>(null);
+  // The privacy notice is shown above the claim button and must be
+  // acknowledged before a claim can be signed. `aria-disabled` rather than the
+  // `disabled` attribute so the button stays focusable and its explanation
+  // stays reachable by keyboard and screen reader; `submitClaim` refuses too.
+  const [acknowledged, setAcknowledged] = useState(false);
 
   const claimAction = useAction<SubmitResult>();
   const lookupAction = useAction<BadgeRecord[]>();
@@ -41,6 +48,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
   const busy = claimAction.busy || lookupAction.busy;
 
   async function submitClaim() {
+    if (!acknowledged) return;
+
     const idCheck = validateEventId(eventId);
     const codeCheck = validateClaimCode(claimCode);
 
@@ -130,9 +139,24 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           error={fieldErrors.claimCode}
         />
 
-        <button type="button" onClick={() => void submitClaim()}>
+        <PrivacyNotice
+          acknowledged={acknowledged}
+          onAcknowledge={setAcknowledged}
+        />
+
+        <button
+          type="button"
+          aria-disabled={!acknowledged || undefined}
+          aria-describedby={!acknowledged ? 'claim-gate-hint' : undefined}
+          onClick={() => void submitClaim()}
+        >
           Claim my badge
         </button>
+        {!acknowledged && (
+          <p className="hint" id="claim-gate-hint">
+            {NOTICE_GATE_HINT}
+          </p>
+        )}
 
         {claimAction.error !== null && <ErrorNotice error={claimAction.error} />}
         {claimAction.result !== null && (
