@@ -1,6 +1,7 @@
 # Dependencies and build output
 node_modules/
 dist/
+dist-ssr/
 coverage/
 *.tsbuildinfo
 
@@ -9,12 +10,13 @@ coverage/
 .env.local
 .env.*.local
 
-# Stellar CLI and key material
+# Stellar CLI and keys material
 .stellar/
 *.key
 
 # Logs
 *.log
+npm-debug.log*
 
 # Editors and operating systems
 .DS_Store
