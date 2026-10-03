@@ -96,11 +96,11 @@ repos, so they stay in sync.
       (recommended yes — a claim is an irreversible public write of a linkable
       identifier, and the claim-code paragraph cannot be consented to if it was
       never disclosed); whether to change the contract instead of disclosing
-      the exposure (bigger than this repo should decide alone); and whether an
-      acknowledgement recorded nowhere should be described as consent. Shipping
-      the notice settles none of them — the gate is `aria-disabled` plus a
-      refusal in `submitClaim`, recorded nowhere, which is deliberate rather
-      than a stopgap.
+      the exposure (bigger than any one repo should decide alone); and whether
+      an acknowledgement recorded nowhere should be described as consent.
+      Shipping the notice settles none of them — the gate is `aria-disabled`
+      plus a refusal in `submitClaim`, recorded nowhere, which is deliberate
+      rather than a stopgap.
 - [ ] **Third parties in the path.** The app sends addresses — and the claim
       code inside the public `claim` transaction — to the Stellar RPC
       endpoint, and explorers index events. How are RPC operators and
