@@ -145,8 +145,11 @@ export function clientFactory(
 ): ContractClient & {
   failNextReadWith: (error: unknown) => void;
   failNextWriteWith: (error: unknown) => void;
+  /** Every `claim` the page prepared, so tests can assert on the arguments. */
+  preparedClaims: Parameters<ContractClient['prepareClaim']>[0][];
 } {
   const eventById = new Map(events.map((event) => [event.id, event]));
+  const preparedClaims: Parameters<ContractClient['prepareClaim']>[0][] = [];
   let readFailure: unknown = null;
   let writeFailure: unknown = null;
 
@@ -188,8 +191,9 @@ export function clientFactory(
       throwRead();
       return { xdr: 'fake-xdr' };
     },
-    async prepareClaim() {
+    async prepareClaim(input) {
       throwRead();
+      preparedClaims.push(input);
       return { xdr: 'fake-xdr' };
     },
     async prepareAward() {
@@ -201,6 +205,7 @@ export function clientFactory(
       return { xdr: 'fake-xdr' };
     },
     submit,
+    preparedClaims,
     failNextReadWith(error: unknown) {
       readFailure = error;
     },

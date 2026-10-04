@@ -23,10 +23,13 @@ leak it.
   wallet kit supports, including without a secure context in practice for
   modern engines) and `crypto.subtle.digest('SHA-256', ...)` (requires a secure
   context; `localhost` and any HTTPS origin qualify).
-- The contract's check: `claim` hashes the presented 32-byte code with the
-  host's SHA-256 and compares against `claim_code_hash`. Any correct SHA-256
-  implementation agrees, and `src/lib/claimCode.test.ts` cross-checks the
-  browser path against Node's own SHA-256 so the two can never silently differ.
+- The contract's check: `claim` compares the presented 32-byte **hash** against
+  `claim_code_hash` (  `claim_code_hash: BytesN<32>` since
+  [ADR 0002 in the contracts repo](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md),
+  2026-10-04; before that it hashed the presented code on-chain). Any correct
+  SHA-256 implementation agrees, and `src/lib/claimCode.test.ts` cross-checks
+  the browser path against Node's own SHA-256 so the two can never silently
+  differ.
 - The equivalent CLI process in `eventbadges-contracts/docs/claim-codes.md` —
   the app's path is the same algorithm and the same byte length (32 bytes =
   256 bits), just run in the browser.
@@ -40,6 +43,10 @@ The organizer screen generates the claim code itself:
    screen, with the on-chain hash beside it;
 3. hashed locally with `crypto.subtle.digest('SHA-256', ...)` before the
    `create_event` transaction is built — only the hash leaves the page.
+
+The same helper hashes before the **claim** transaction too, since the
+contracts repo's ADR 0002: the attendee's browser turns the pasted code into
+the digest and the raw code never enters the transaction either.
 
 The app never stores, logs or transmits the code. There is deliberately no
 "copy the code again later" affordance: the chain holds only the hash, so a

@@ -1,13 +1,18 @@
 /**
- * Claim codes: generated locally, shared out-of-band, never sent anywhere
- * except inside the `claim` call the attendee signs.
+ * Claim codes: generated locally, shared out-of-band, and hashed on the
+ * device that uses them.
  *
- * The contract stores only SHA-256 of the code (`claim_code_hash`); the code
- * itself never touches the chain until an attendee presents it. The process is
- * documented in the contracts repo's `docs/claim-codes.md`: generate randomly
- * (here: the Web Crypto API), hash locally (here: Web Crypto SHA-256 — the
- * same algorithm the contract checks with), hand the code to attendees in
- * person or by a channel you trust, keep nothing.
+ * The contract stores only SHA-256 of the code (`claim_code_hash`), and since
+ * `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`
+ * `claim` takes that same digest rather than the code: the raw secret stays on
+ * the organizer's machine and on the attendee's device, and only the digest is
+ * published. The digest is already readable from `get_event`, so it is not a
+ * secret either — it acts as a bearer credential for a place while the event's
+ * window is open. The process is documented in the contracts repo's
+ * `docs/claim-codes.md`: generate randomly (here: the Web Crypto API), hash
+ * locally (here: Web Crypto SHA-256 — the same algorithm the contract checks
+ * with), hand the code to attendees in person or by a channel you trust, keep
+ * nothing.
  */
 
 /** The claim code's entropy: 32 bytes = 256 bits, hex-encoded for sharing. */

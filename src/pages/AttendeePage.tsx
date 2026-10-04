@@ -8,7 +8,7 @@ import { PrivacyNotice } from '../components/PrivacyNotice';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
 import type { BadgeRecord } from '../lib/badge';
-import { hexToBytes, validateClaimCode } from '../lib/claimCode';
+import { hashClaimCode, hexToBytes, validateClaimCode } from '../lib/claimCode';
 import type { SubmitResult } from '../lib/contract';
 import { runWrite } from '../lib/flow';
 import { NOTICE_GATE_HINT } from '../lib/privacyNotice';
@@ -59,13 +59,21 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     });
     if (!idCheck.ok || !codeCheck.ok) return;
 
+    // The contract takes the code's SHA-256, not the code: hashing here keeps
+    // the raw secret on this device and out of the transaction.
+    const hashed = await hashClaimCode(codeCheck.code);
+    if (!hashed.ok) {
+      setFieldErrors((prev) => ({ ...prev, claimCode: hashed.message }));
+      return;
+    }
+
     const result = await claimAction.run(async () =>
       runWrite(client, address, config.passphrase, () =>
         client.prepareClaim({
           source: address,
           eventId: idCheck.value,
           attendee: address,
-          claimCode: hexToBytes(codeCheck.code),
+          claimCodeHash: hexToBytes(hashed.hashHex),
         }),
       ),
     );

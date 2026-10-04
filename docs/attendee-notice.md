@@ -1,14 +1,19 @@
 # Attendee privacy notice (draft text)
 
-The words the claim screen should show **before the attendee's wallet signs**.
-This answers item 7 of the legal-review checklist ("What attendees are told") in
-all three ROADMAPs. It is draft copy for the maintainer to review, and it is
-**not legal advice**: it describes what the software does, which is the part
-that can be verified here. Whether it is an adequate notice is a question for a
-lawyer, not for this repository.
+The words the claim screen shows **before the attendee's wallet signs**. This
+answers item 7 of the legal-review checklist ("What attendees are told") in all
+three ROADMAPs. It is draft copy for the maintainer to review, and it is **not
+legal advice**: it describes what the software does, which is the part that can
+be verified here. Whether it is an adequate notice is a question for a lawyer,
+not for this repository.
 
-Nothing here is implemented. See
-[draft 11](issue-drafts/11-attendee-privacy-notice.md).
+**Implemented 2026-10-03** as a required acknowledgement on the claim screen —
+see [draft 11](issue-drafts/11-attendee-privacy-notice.md) and
+[`src/lib/privacyNotice.ts`](../src/lib/privacyNotice.ts), which is the shipped
+copy. **The claim-code paragraph was rewritten 2026-10-04**, when
+[ADR 0002](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md)
+landed in the contracts repo and in this app: `claim` now takes the code's
+SHA-256 rather than the code. The copy in this file is the shipped text.
 
 ## Where the notice goes
 
@@ -34,8 +39,9 @@ Both must be shown. A notice hidden behind a link is not notice.
 >   together across every event you ever claim from.
 > - **Nothing can ever be deleted.** If the organizer takes your badge back, the
 >   record of you claiming it stays.
-> - **The claim code you type is published in the transaction itself** and stays
->   public forever. It cannot be replaced.
+> - **The claim code you type is never sent: your browser hashes it first.** But
+>   that hash is public on the event itself, and it is all anyone needs to claim
+>   a place while any remain.
 > - This is **testnet software that has never been used with real people.**
 >
 > [Read the full notice](#the-full-notice)
@@ -75,19 +81,21 @@ Both must be shown. A notice hidden behind a link is not notice.
 >   deletion: your address and your claim remain in the permanent transaction
 >   history either way.
 >
-> ### Your claim code is public. Please read this.
+> ### Your claim code is hashed, not hidden
 >
-> When you claim, the code you type is placed **inside the transaction itself**
-> and sent to the public network, where it stays readable forever. The contract
-> works by hashing the code it receives; in the current version there is no way
-> to send the hash instead.
+> The claim code you type is never sent: your browser hashes it first. But that
+> hash is public on the event itself, and it is all anyone needs to claim a
+> place while any remain.
 >
-> In practice: anyone watching the network can read that code from the moment
-> you sign. If your event still has places left, they could use it to take a
-> place. You cannot claim twice — one address gets one badge per event — but
-> your organizer can. **If your claim code is ever exposed, tell the
-> organizer**, because the only remedy today is for them to create a new event
-> with a new code. The code cannot be changed on an existing event.
+> Hashing the code keeps the code itself out of the network, but it does not
+> make the code a secret you can rely on. Anyone who reads the event can take
+> one of the remaining places with it — claimed to their own address, not
+> yours, so they cannot wear your badge, but they can use up a place. The badge
+> cap and the closing date are the only limits.
+>
+> If your claim code is ever exposed, tell the organizer. The only remedy today
+> is for them to create a new event with a new code, because a stored hash
+> cannot be rotated.
 >
 > ### Addresses are pseudonymous, not anonymous
 >
@@ -136,25 +144,36 @@ Every statement above traces to code that exists today. Nothing is aspirational.
 | "nothing can ever be deleted" | `revoke` removes the badge key and publishes `BadgeRevoked`, so the removal is itself permanent; see `docs/events.md` in the contracts repo |
 | "the organizer can remove your badge at any time" | `revoke` is deliberately not window-bound — see its doc comment in `src/badges.rs` |
 | "an organizer can issue a badge without you claiming" | `award(event_id, attendee)` requires only the organizer's signature, not the attendee's |
-| "the claim code is published in the transaction" | `claim(env, event_id, attendee, claim_code: Bytes)` in `src/lib.rs`; the app sends the raw 32 bytes as the third argument in `prepareClaim` (`src/lib/contract.ts`) and the contract hashes what it receives (`env.crypto().sha256(claim_code)` in `src/badges.rs`) |
-| "you cannot claim twice" | the `AlreadyHeld` check precedes issuance in `claim` and `award` |
-| "the code cannot be changed" | v0 exposes seven entrypoints and none rotates `claim_code_hash` — `src/lib.rs` |
+| "your browser hashes it first" / "the code is never sent" | `submitClaim` awaits `hashClaimCode` before building the transaction (`src/pages/AttendeePage.tsx`); `prepareClaim` sends `bytes32ToScVal(claimCodeHash)` (`src/lib/contract.ts`); `claim` takes `claim_code_hash: BytesN<32>` (`src/lib.rs`) — no call path carries the raw code |
+| "that hash is public on the event itself" | `Event.claim_code_hash` is returned by `get_event`, which calls `load_event` with no `require_auth` (`src/badges.rs`) |
+| "it is all anyone needs to claim a place" | `claim` compares the presented digest to the stored one directly; the only auth it demands is the claimant's own, so a third party can claim to their own address |
+| "claimed to their own address, not yours" | the badge is minted under `DataKey::Badge(event_id, attendee)` for the address that signed |
+| "they cannot wear your badge" / "you cannot claim twice" | the `AlreadyHeld` check precedes issuance in `claim` and `award` |
+| "the badge cap and the closing date are the only limits" | `check_event_open`/`count_after_issue` enforce `max_claims`; the timestamp check enforces `closes_at` |
+| "a stored hash cannot be rotated" | v0 exposes seven entrypoints and none rotates `claim_code_hash` — `src/lib.rs` |
 | "the badge entry can eventually expire" | TTL is `closes_at` plus a 30-day margin with a 7-day floor, topped up only on access — `src/storage.rs` |
 | "testnet, never used with real people" | the app's README, "What is proven vs assumed": every contract call and wallet interaction is assumed, never exercised |
 
-### The one line that surprised us
+### The line that changed
 
-"**The claim code you type is published in the transaction itself.**" The docs
-book currently says the opposite — that "the chain never holds the claim code".
-That is true of *storage* and false of the *transaction argument*, and the
-contract hashes the code on purpose, because that is how it checks it. ADR 0002
-("only the hash leaves the page") is about the organizer's `create_event`
-transaction; the attendee's `claim` transaction is a different path and carries
-the raw code.
+The notice originally said **"the claim code you type is published in the
+transaction itself and stays public forever."** That was true of the contract as
+written: `claim` took the code as a `Bytes` argument and hashed it on-chain, so
+the raw secret rode in a public transaction. The docs book said the opposite —
+that "the chain never holds the claim code" — and was right about storage and
+wrong about the transaction argument.
 
-This is the strongest reason to put the claim code in the notice rather than
-leave it in the threat model. It is also the strongest argument for changing
-the contract — see the open question below.
+ADR 0002 removed the exposure instead of describing it: `claim` now takes the
+code's SHA-256, which the attendee's browser computes, and compares it to the
+stored hash. The sentence had to change with it, and the honest replacement is
+not simply softer. **The digest is public too** — `get_event` returns it to
+anyone — so the code was never a secret the network was protecting. What
+changed is that the attendee's raw code no longer enters a transaction; what did
+not change is that a leaked or observed digest can still take a place until the
+cap fills or the window closes.
+
+The Merkle-codes item on the roadmap fixes that remaining defect, and it is a
+different defect: one shared code per event means any holder can claim.
 
 ## Still open (the maintainer's decision, not this file's)
 
@@ -166,17 +185,14 @@ the contract — see the open question below.
 2. **Whether a missing notice blocks the first pilot.** Recommended: yes, for
    the claim flow. A claim is an irreversible public write of a linkable
    identifier, and a person who cannot understand that before signing has not
-   really been told — especially given the claim-code paragraph, which no one
-   has been able to consent to in the current design because it was not
-   disclosed anywhere.
-3. **Whether to block the pilot on the contract instead.** The alternative to
-   disclosing the claim-code exposure is to remove it, so that no notice is
-   needed. That is a contract change, not a copy change, and it is a bigger
-   decision than this repository should make alone.
-4. **Whether a ticked box is the right mechanism.** An acknowledgement that is
+   really been told.
+3. **Whether a ticked box is the right mechanism.** An acknowledgement that is
    recorded nowhere proves nothing and creates a record-keeping problem of its
    own if the project claims it was consent. A checkbox that is not evidence
    should not be presented as evidence.
 
-None of these four is answered here, and none should be answered by picking
-wording.
+**Answered 2026-10-04:** the earlier open question "whether to block the pilot
+on the contract instead of disclosing the claim-code exposure" was decided — the
+contract changed (ADR 0002), so the raw code is no longer disclosed because it
+is no longer transmitted. The other three are not answered here, and none
+should be answered by picking wording.

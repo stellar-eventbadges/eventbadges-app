@@ -23,13 +23,15 @@ describe('the privacy notice copy', () => {
     expect(fullNoticeText).toContain(CLAIM_CODE_WARNING);
   });
 
-  // The sentence exists because `claim` transmits the raw code. If a contract
-  // change removes that, the notice must change with it — this failure is the
-  // signal that it did not.
-  it('states that the claim code is transmitted and permanent', () => {
-    expect(CLAIM_CODE_WARNING).toContain('published in the transaction itself');
-    expect(CLAIM_CODE_WARNING).toContain('forever');
-    expect(CLAIM_CODE_WARNING).toContain('cannot be replaced');
+  // The sentence exists because the claim transaction carries the code's
+  // SHA-256, and because `get_event` hands that digest to anyone who asks. If a
+  // contract change moves either half — the raw code starts being transmitted
+  // again, or the digest stops being public — the notice must change too, and
+  // this failure is the signal that it did not.
+  it('states that the code is hashed on the device and the digest is public', () => {
+    expect(CLAIM_CODE_WARNING).toContain('never sent');
+    expect(CLAIM_CODE_WARNING).toContain('your browser hashes it');
+    expect(CLAIM_CODE_WARNING).toContain('public on the event itself');
   });
 
   it('has no empty strings anywhere in the short version', () => {

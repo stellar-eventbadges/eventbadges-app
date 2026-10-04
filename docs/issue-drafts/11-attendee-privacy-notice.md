@@ -13,11 +13,16 @@
 > reading of "disabled" than the acceptance criteria below first suggested.
 > Everything else in the criteria is met.
 >
-> **Still open, and not a copy question:** the four decisions in
+> **Revised 2026-10-04:** the claim-code paragraph changed when ADR 0002
+> landed — `claim` takes the code's SHA-256 now, so the code is hashed on the
+> attendee's device and never sent.
+>
+> **Still open, and not a copy question:** three of the four decisions in
 > `docs/attendee-notice.md` — who delivers the notice, whether a missing one
-> blocks the first pilot, whether to change the contract instead of disclosing
-> the exposure, and whether an acknowledgement recorded nowhere may be called
-> consent. They live under "Decisions needed from Tim" in `ROADMAP.md`.
+> blocks the first pilot, and whether an acknowledgement recorded nowhere may
+> be called consent. The fourth, "change the contract instead of disclosing
+> the exposure", was decided on 2026-10-04: the contract changed. They live
+> under "Decisions needed from Tim" in `ROADMAP.md`.
 
 ## Problem
 
@@ -31,16 +36,24 @@ Two things are missing, and one of them is a surprise.
    timestamp become public and unremovable, that attendance can be linked
    across every event they ever claim from, or that anyone can check them with
    no wallet at all.
-2. **The claim code is published in the transaction.** `claim` takes the raw
-   code as an argument (`src/lib.rs` in `eventbadges-contracts`), the app sends
+2. **The claim code was published in the transaction.** `claim` took the raw
+   code as an argument (`src/lib.rs` in `eventbadges-contracts`), the app sent
    the raw 32 bytes (`prepareClaim` in `src/lib/contract.ts`), and the contract
-   hashes what it receives. Anyone watching the network can read the code from
-   the moment the attendee signs, and it stays readable forever. The docs book
-   currently claims the opposite. It is the most important thing an attendee
-   could be told, and it is told nowhere.
+   hashed what it received. Anyone watching the network could read the code
+   from the moment the attendee signed, and it stayed readable forever. The
+   docs book claimed the opposite. It was the most important thing an attendee
+   could be told, and it was told nowhere.
+
+   **Fixed 2026-10-04** by
+   [ADR 0002](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md),
+   which this draft forced: `claim` now takes the code's SHA-256, and the app
+   hashes before it builds the transaction. The notice still has to say what
+   remains true — that digest is public on the event, so the code was never a
+   secret the network protected.
 
 Draft copy for both is written and every line is traced to code in
-[`docs/attendee-notice.md`](../attendee-notice.md). It is not implemented.
+[`docs/attendee-notice.md`](../attendee-notice.md); the shipped copy lives in
+`src/lib/privacyNotice.ts`.
 
 ## Scope
 
@@ -57,8 +70,9 @@ Draft copy for both is written and every line is traced to code in
 
 Out of scope: writing an organizer-side notice, recording or storing the
 acknowledgement, and any change to the contract. The contract-side fix for the
-claim-code exposure is a separate, larger decision recorded in
-`ROADMAP.md`.
+claim-code exposure was a separate, larger decision recorded in `ROADMAP.md`,
+and it landed on 2026-10-04 (ADR 0002) rather than being shipped as part of
+this draft.
 
 ## Acceptance criteria
 
@@ -67,7 +81,9 @@ claim-code exposure is a separate, larger decision recorded in
 - [ ] The full notice is reachable in one interaction and states, in these
       words or the maintainer's approved revision: the address is public and
       linkable; nothing is deletable; the organizer can revoke at any time; the
-      claim code is in the transaction and permanent.
+      claim code is hashed before it is sent and the hash is public on the
+      event (revised 2026-10-04 from "the claim code is in the transaction and
+      permanent").
 - [ ] The notice is a labelled region (`role="note"` or a `<fieldset>` with a
       `<legend>`), the checkbox has a real `<label>`, and the page still passes
       the axe check in `src/test/render.tsx`.

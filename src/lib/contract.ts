@@ -104,11 +104,17 @@ export interface ContractClient {
     maxClaims: number;
     closesAt: bigint;
   }): Promise<PreparedCall>;
+  /**
+   * `claimCodeHash` is the SHA-256 of the attendee's claim code — the digest,
+   * never the code. The contract compares it to the event's stored hash, so
+   * the raw code stays on the attendee's device and out of the transaction.
+   * See `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`.
+   */
   prepareClaim(input: {
     source: string;
     eventId: bigint;
     attendee: string;
-    claimCode: Uint8Array;
+    claimCodeHash: Uint8Array;
   }): Promise<PreparedCall>;
   prepareAward(input: { source: string; eventId: bigint; attendee: string }): Promise<PreparedCall>;
   prepareRevoke(input: { source: string; eventId: bigint; attendee: string }): Promise<PreparedCall>;
@@ -210,13 +216,13 @@ export function createContractClient(config: AppConfig): ContractClient {
       };
     },
 
-    async prepareClaim({ source, eventId, attendee, claimCode }) {
+    async prepareClaim({ source, eventId, attendee, claimCodeHash }) {
       return {
         xdr: await assemble(source, 'claim', [
           u64ToScVal(eventId),
           addressToScVal(attendee),
-          // `claim` takes a variable-length `Bytes`; the code is exactly 32.
-          nativeBytesToScVal(claimCode),
+          // `claim` takes the code's SHA-256 (`BytesN<32>`), not the code.
+          bytes32ToScVal(claimCodeHash),
         ]),
       };
     },
@@ -269,11 +275,4 @@ export function createContractClient(config: AppConfig): ContractClient {
       );
     },
   };
-}
-
-import { nativeToScVal } from '@stellar/stellar-sdk';
-
-/** `Bytes` (variable length) — used by `claim` for the 32-byte claim code. */
-function nativeBytesToScVal(bytes: Uint8Array): xdr.ScVal {
-  return nativeToScVal(bytes, { type: 'bytes' });
 }

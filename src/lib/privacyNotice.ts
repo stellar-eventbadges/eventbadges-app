@@ -19,17 +19,21 @@ export interface NoticeSection {
 }
 
 /**
- * The one sentence about the claim code. It is the reason this notice exists:
- * `claim` takes the code as a transaction argument, so it is public from the
- * moment the wallet signs. It is named separately and interpolated into both
- * lengths, and `privacyNotice.test.ts` fails if it goes missing from either.
+ * The one sentence about the claim code. It is the reason this notice exists,
+ * and it is the sentence that changed when
+ * `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`
+ * landed: `claim` now takes the code's SHA-256, so the code itself never
+ * enters a transaction. The digest does, and it is already public on the
+ * event, so the warning moves from "your code is published" to "your code is
+ * hashed, and the hash is public anyway".
  *
- * If the contract ever changes so the raw code is not transmitted, this
- * sentence becomes wrong and the notice must change with it — see
- * `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`.
+ * It is named separately and interpolated into both lengths, and
+ * `privacyNotice.test.ts` fails if it goes missing from either. If the
+ * contract changes so the digest stops being readable through `get_event`,
+ * this sentence becomes wrong and must change with it.
  */
 export const CLAIM_CODE_WARNING =
-  'The claim code you type is published in the transaction itself and stays public forever. It cannot be replaced.';
+  'The claim code you type is never sent: your browser hashes it first. But that hash is public on the event itself, and it is all anyone needs to claim a place while any remain.';
 
 export const NOTICE_TITLE = 'Before you claim';
 
@@ -80,10 +84,11 @@ export const FULL_NOTICE_SECTIONS: readonly NoticeSection[] = [
     ],
   },
   {
-    heading: 'Your claim code is public',
+    heading: 'Your claim code is hashed, not hidden',
     paragraphs: [
       CLAIM_CODE_WARNING,
-      'Anyone watching the network can read that code from the moment you sign. If your event still has places left, they could use it to take a place. You cannot claim twice — one address gets one badge per event — but your organizer can. If your claim code is ever exposed, tell the organizer, because the only remedy today is for them to create a new event with a new code.',
+      'Hashing the code keeps the code itself out of the network, but it does not make the code a secret you can rely on. Anyone who reads the event can take one of the remaining places with it — claimed to their own address, not yours, so they cannot wear your badge, but they can use up a place. The badge cap and the closing date are the only limits.',
+      'If your claim code is ever exposed, tell the organizer. The only remedy today is for them to create a new event with a new code, because a stored hash cannot be rotated.',
     ],
   },
   {

@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { createHash } from 'node:crypto';
+
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -30,6 +32,7 @@ import {
   textOf,
   walletFactory,
 } from '../test/render';
+import { bytesToHex } from '../lib/claimCode';
 import { CLAIM_CODE_WARNING, NOTICE_ACK_LABEL, NOTICE_GATE_HINT } from '../lib/privacyNotice';
 
 import { AttendeePage } from './AttendeePage';
@@ -99,6 +102,31 @@ describe('<AttendeePage />', () => {
 
     expect(await view.findByText('Badge claimed')).not.toBeNull();
     expect(await view.findByText('Badge for event #1')).not.toBeNull();
+  });
+
+  // The contract takes the claim code's SHA-256. If the page ever sends the
+  // code itself again, the raw secret is back in a public transaction and this
+  // test is the tripwire.
+  it('sends the code’s SHA-256, never the code', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const wallet = walletFactory({ address });
+    const client = clientFactory([eventFactory()], [badgeFactory({ eventId: 1n, attendee: address })]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(client.preparedClaims).toHaveLength(1);
+    const sent = client.preparedClaims[0].claimCodeHash;
+    expect(sent).toHaveLength(32);
+    expect(bytesToHex(sent)).toBe(
+      createHash('sha256').update(Buffer.from(CODE, 'hex')).digest('hex'),
+    );
+    // Not a value derived from the code by chance: the code's own bytes differ.
+    expect(bytesToHex(sent)).not.toBe(CODE);
   });
 
   it('maps a contract error on claim to the ERRORS.md wording', async () => {
