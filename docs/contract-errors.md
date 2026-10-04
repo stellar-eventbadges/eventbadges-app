@@ -29,9 +29,10 @@ Every failure mode has a defined code. No silent fallback.
 | Code | Variant | Raised by | Trigger | User-facing message | Next action |
 |---:|---|---|---|---|---|
 | 10 | `EventClosed` | `claim`, `award` | The event's claim deadline (`closes_at`) has passed. | "The claim window for this event has closed." | Ask the organizer whether another proof of attendance exists. |
-| 11 | `ClaimCodeMismatch` | `claim` | The presented claim code hash does not match the event's stored hash. | "That claim code is not valid for this event." | Check the code with the organizer and try again. |
 | 12 | `CapReached` | `claim`, `award` | The event already issued `max_claims` badges. | "This event has no badges left to issue." | Ask the organizer whether another event run is planned. |
 | 13 | `AlreadyHeld` | `claim`, `award` | The attendee already holds a badge for this event. | "This address already holds a badge for this event." | Open the existing badge; nothing else to do. |
+| 14 | `ClaimProofInvalid` | `claim` | The presented leaf — the SHA-256 of a claim code — does not fold into the event's claim root with the proof supplied. | "That claim code is not valid for this event." | Check the code with the organizer and try again; each attendee has their own code. |
+| 15 | `ClaimCodeUsed` | `claim` | The presented leaf has already been claimed, so its one place is taken. | "That claim code has already been used." | Ask the organizer to revoke the badge that used it and award one instead. |
 
 ## Validation (30–49)
 

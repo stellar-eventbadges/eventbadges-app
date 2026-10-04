@@ -88,7 +88,7 @@ export function eventFactory(overrides: Partial<EventRecord> = {}): EventRecord 
     id: 1n,
     organizer: fakeAccount(1),
     nameHash: new Uint8Array(32).fill(0x11),
-    claimCodeHash: new Uint8Array(32).fill(0x22),
+    claimRoot: new Uint8Array(32).fill(0x22),
     maxClaims: 100,
     closesAt: 4_102_444_800n, // 2100-01-01, so the window is open in tests.
     claimCount: 0,

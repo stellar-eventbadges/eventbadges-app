@@ -100,21 +100,23 @@ export interface ContractClient {
     source: string;
     organizer: string;
     nameHash: Uint8Array;
-    claimCodeHash: Uint8Array;
+    claimRoot: Uint8Array;
     maxClaims: number;
     closesAt: bigint;
   }): Promise<PreparedCall>;
   /**
-   * `claimCodeHash` is the SHA-256 of the attendee's claim code — the digest,
-   * never the code. The contract compares it to the event's stored hash, so
-   * the raw code stays on the attendee's device and out of the transaction.
-   * See `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`.
+   * `leafHash` is the SHA-256 of this attendee's claim code — the leaf, never
+   * the code — and `proof` is the organizer's list of sibling hashes that
+   * connects it to the event's `claim_root`, leaf level first. An empty proof
+   * is correct only for a one-attendee event, where the root *is* the leaf.
+   * See `eventbadges-contracts/docs/decisions/0003-per-attendee-claim-codes.md`.
    */
   prepareClaim(input: {
     source: string;
     eventId: bigint;
     attendee: string;
-    claimCodeHash: Uint8Array;
+    leafHash: Uint8Array;
+    proof: readonly Uint8Array[];
   }): Promise<PreparedCall>;
   prepareAward(input: { source: string; eventId: bigint; attendee: string }): Promise<PreparedCall>;
   prepareRevoke(input: { source: string; eventId: bigint; attendee: string }): Promise<PreparedCall>;
@@ -204,25 +206,29 @@ export function createContractClient(config: AppConfig): ContractClient {
       );
     },
 
-    async prepareCreateEvent({ source, organizer, nameHash, claimCodeHash, maxClaims, closesAt }) {
+    async prepareCreateEvent({ source, organizer, nameHash, claimRoot, maxClaims, closesAt }) {
       return {
         xdr: await assemble(source, 'create_event', [
           addressToScVal(organizer),
           bytes32ToScVal(nameHash),
-          bytes32ToScVal(claimCodeHash),
+          bytes32ToScVal(claimRoot),
           u32ToScVal(maxClaims),
           u64ToScVal(closesAt),
         ]),
       };
     },
 
-    async prepareClaim({ source, eventId, attendee, claimCodeHash }) {
+    async prepareClaim({ source, eventId, attendee, leafHash, proof }) {
       return {
         xdr: await assemble(source, 'claim', [
           u64ToScVal(eventId),
           addressToScVal(attendee),
-          // `claim` takes the code's SHA-256 (`BytesN<32>`), not the code.
-          bytes32ToScVal(claimCodeHash),
+          // `claim` takes this attendee's leaf (`BytesN<32>`) and the proof
+          // that it belongs to the root, never the code itself.
+          bytes32ToScVal(leafHash),
+          // A `Vec<BytesN<32>>` of siblings; the empty vector is a valid proof
+          // for a one-attendee event.
+          xdr.ScVal.scvVec(proof.map((node) => bytes32ToScVal(node))),
         ]),
       };
     },

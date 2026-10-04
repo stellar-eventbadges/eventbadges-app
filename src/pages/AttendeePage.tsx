@@ -8,7 +8,12 @@ import { PrivacyNotice } from '../components/PrivacyNotice';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
 import type { BadgeRecord } from '../lib/badge';
-import { hashClaimCode, hexToBytes, validateClaimCode } from '../lib/claimCode';
+import {
+  hashClaimCode,
+  hexToBytes,
+  parseClaimProof,
+  validateClaimCode,
+} from '../lib/claimCode';
 import type { SubmitResult } from '../lib/contract';
 import { runWrite } from '../lib/flow';
 import { NOTICE_GATE_HINT } from '../lib/privacyNotice';
@@ -23,6 +28,7 @@ import type { PageProps } from './shared';
 export function AttendeePage({ client, config, wallet }: PageProps) {
   const [eventId, setEventId] = useState('');
   const [claimCode, setClaimCode] = useState('');
+  const [claimProof, setClaimProof] = useState('');
   const [lookupAddress, setLookupAddress] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [badges, setBadges] = useState<BadgeRecord[] | null>(null);
@@ -52,12 +58,14 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
 
     const idCheck = validateEventId(eventId);
     const codeCheck = validateClaimCode(claimCode);
+    const proofCheck = parseClaimProof(claimProof);
 
     setFieldErrors({
       claimEvent: idCheck.ok ? null : idCheck.message,
       claimCode: codeCheck.ok ? null : codeCheck.message,
+      claimProof: proofCheck.ok ? null : proofCheck.message,
     });
-    if (!idCheck.ok || !codeCheck.ok) return;
+    if (!idCheck.ok || !codeCheck.ok || !proofCheck.ok) return;
 
     // The contract takes the code's SHA-256, not the code: hashing here keeps
     // the raw secret on this device and out of the transaction.
@@ -73,7 +81,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           source: address,
           eventId: idCheck.value,
           attendee: address,
-          claimCodeHash: hexToBytes(hashed.hashHex),
+          leafHash: hexToBytes(hashed.hashHex),
+          proof: proofCheck.value,
         }),
       ),
     );
@@ -117,8 +126,9 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     <section>
       <h1>Claim your badge</h1>
       <p>
-        Enter the event id and the claim code the organizer gave you. The code is checked against a
-        hash the contract stores — the code itself is never published.
+        Enter the event id, the claim code the organizer gave you, and the proof that came with it.
+        The code is hashed here in your browser; the hash and the proof go to the contract, and the
+        code itself is never published.
       </p>
 
       <fieldset disabled={busy}>
@@ -145,6 +155,17 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           required
           hint="Exactly as the organizer shared it. If it does not work, check it character by character — codes are long on purpose."
           error={fieldErrors.claimCode}
+        />
+
+        <Field
+          id="claimProof"
+          label="Claim proof (optional)"
+          value={claimProof}
+          onChange={setClaimProof}
+          placeholder="64-character hashes, separated by spaces"
+          mono
+          hint="The organizer's proof that your code belongs to this event, one hash per line. Leave it empty only if the event has a single attendee."
+          error={fieldErrors.claimProof}
         />
 
         <PrivacyNotice

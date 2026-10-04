@@ -13,7 +13,8 @@ export interface EventRecord {
   readonly id: bigint;
   readonly organizer: string;
   readonly nameHash: Uint8Array;
-  readonly claimCodeHash: Uint8Array;
+  /** The Merkle root the event's claim leaves hang from (`claim_root`). */
+  readonly claimRoot: Uint8Array;
   readonly maxClaims: number;
   readonly closesAt: bigint;
   readonly claimCount: number;

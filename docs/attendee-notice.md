@@ -10,10 +10,12 @@ not for this repository.
 **Implemented 2026-10-03** as a required acknowledgement on the claim screen —
 see [draft 11](issue-drafts/11-attendee-privacy-notice.md) and
 [`src/lib/privacyNotice.ts`](../src/lib/privacyNotice.ts), which is the shipped
-copy. **The claim-code paragraph was rewritten 2026-10-04**, when
+copy. **The claim-code paragraph was rewritten twice on 2026-10-04**:
 [ADR 0002](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md)
-landed in the contracts repo and in this app: `claim` now takes the code's
-SHA-256 rather than the code. The copy in this file is the shipped text.
+made `claim` take the code's SHA-256 rather than the code, and
+[ADR 0003](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0003-per-attendee-claim-codes.md)
+gave every attendee their own code and left only a Merkle root on the event.
+The copy in this file is the shipped text.
 
 ## Where the notice goes
 
@@ -39,9 +41,9 @@ Both must be shown. A notice hidden behind a link is not notice.
 >   together across every event you ever claim from.
 > - **Nothing can ever be deleted.** If the organizer takes your badge back, the
 >   record of you claiming it stays.
-> - **The claim code you type is never sent: your browser hashes it first.** But
->   that hash is public on the event itself, and it is all anyone needs to claim
->   a place while any remain.
+> - **The claim code you type is never sent: your browser hashes it first, and
+>   only that hash goes to the network.** Each attendee has their own code, and
+>   one code is good for one badge.
 > - This is **testnet software that has never been used with real people.**
 >
 > [Read the full notice](#the-full-notice)
@@ -81,21 +83,21 @@ Both must be shown. A notice hidden behind a link is not notice.
 >   deletion: your address and your claim remain in the permanent transaction
 >   history either way.
 >
-> ### Your claim code is hashed, not hidden
+> ### Your claim code is yours alone
 >
-> The claim code you type is never sent: your browser hashes it first. But that
-> hash is public on the event itself, and it is all anyone needs to claim a
-> place while any remain.
+> The claim code you type is never sent: your browser hashes it first, and only
+> that hash goes to the network. Each attendee has their own code, and one code
+> is good for one badge.
 >
-> Hashing the code keeps the code itself out of the network, but it does not
-> make the code a secret you can rely on. Anyone who reads the event can take
-> one of the remaining places with it — claimed to their own address, not
-> yours, so they cannot wear your badge, but they can use up a place. The badge
-> cap and the closing date are the only limits.
+> The event's public record holds one fingerprint of every attendee's code
+> together, which is what the contract checks your code against. That
+> fingerprint does not give anyone a code, and it cannot be used to claim: only
+> someone holding a code can claim with it.
 >
-> If your claim code is ever exposed, tell the organizer. The only remedy today
-> is for them to create a new event with a new code, because a stored hash
-> cannot be rotated.
+> Keep your code to yourself anyway. If someone else gets it, they can use it
+> before you do, and the one place it was good for is gone. Tell the organizer
+> if that happens — they can take back the badge that used it and issue you one
+> directly.
 >
 > ### Addresses are pseudonymous, not anonymous
 >
@@ -144,10 +146,11 @@ Every statement above traces to code that exists today. Nothing is aspirational.
 | "nothing can ever be deleted" | `revoke` removes the badge key and publishes `BadgeRevoked`, so the removal is itself permanent; see `docs/events.md` in the contracts repo |
 | "the organizer can remove your badge at any time" | `revoke` is deliberately not window-bound — see its doc comment in `src/badges.rs` |
 | "an organizer can issue a badge without you claiming" | `award(event_id, attendee)` requires only the organizer's signature, not the attendee's |
-| "your browser hashes it first" / "the code is never sent" | `submitClaim` awaits `hashClaimCode` before building the transaction (`src/pages/AttendeePage.tsx`); `prepareClaim` sends `bytes32ToScVal(claimCodeHash)` (`src/lib/contract.ts`); `claim` takes `claim_code_hash: BytesN<32>` (`src/lib.rs`) — no call path carries the raw code |
-| "that hash is public on the event itself" | `Event.claim_code_hash` is returned by `get_event`, which calls `load_event` with no `require_auth` (`src/badges.rs`) |
-| "it is all anyone needs to claim a place" | `claim` compares the presented digest to the stored one directly; the only auth it demands is the claimant's own, so a third party can claim to their own address |
-| "claimed to their own address, not yours" | the badge is minted under `DataKey::Badge(event_id, attendee)` for the address that signed |
+| "your browser hashes it first" / "the code is never sent" | `submitClaim` awaits `hashClaimCode` before building the transaction (`src/pages/AttendeePage.tsx`); `prepareClaim` sends `bytes32ToScVal(leafHash)` and the proof as a `Vec<BytesN<32>>` (`src/lib/contract.ts`); `claim` takes `leaf_hash: BytesN<32>` and `proof: Vec<BytesN<32>>` (`src/lib.rs`) — no call path carries the raw code |
+| "one fingerprint of every attendee's code together" | `Event.claim_root` is the Merkle root over one leaf per attendee, `leaf = SHA-256(code)` — `src/badges.rs`, `docs/claim-codes.md`, ADR 0003 |
+| "does not give anyone a code, and cannot be used to claim" | a root is not invertible into its leaves, and the pre-0003 design's public single digest — which *was* the value a claim presented — no longer exists (`get_event` returns the root instead) |
+| "one code is good for one badge" | `claim` writes `DataKey::RedeemedLeaf(event_id, leaf)` before minting and returns `ClaimCodeUsed` for a spent leaf; `AlreadyHeld` covers the same address claiming twice |
+| "they can take back the badge that used it and issue you one directly" | `revoke` frees the cap slot and is not window-bound; `award` requires only the organizer's signature |
 | "they cannot wear your badge" / "you cannot claim twice" | the `AlreadyHeld` check precedes issuance in `claim` and `award` |
 | "the badge cap and the closing date are the only limits" | `check_event_open`/`count_after_issue` enforce `max_claims`; the timestamp check enforces `closes_at` |
 | "a stored hash cannot be rotated" | v0 exposes seven entrypoints and none rotates `claim_code_hash` — `src/lib.rs` |

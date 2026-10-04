@@ -18,8 +18,8 @@ const CONTRACT_REPO_TABLE = path.resolve(process.cwd(), '../eventbadges-contract
 const rows = parseErrorTable(readFileSync(VENDORED_TABLE, 'utf8'));
 
 describe('the vendored ERRORS.md table', () => {
-  it('parses all 8 documented variants', () => {
-    expect(rows).toHaveLength(8);
+  it('parses all 9 documented variants', () => {
+    expect(rows).toHaveLength(9);
   });
 
   it('has a mapped, identically worded message for every variant', () => {

@@ -110,7 +110,7 @@ repos, so they stay in sync.
       answers the "change the contract instead of disclosing" decision on this
       list; the other three still stand.
 - [ ] **Third parties in the path.** The app sends addresses — and the claim
-      code's digest, which is already public, inside the `claim` transaction —
+      code's leaf, inside the `claim` transaction —
       to the Stellar RPC endpoint, and explorers index events. How are RPC
       operators and explorers characterised (processor, independent
       controller), and can a pilot simply accept the public testnet RPC?

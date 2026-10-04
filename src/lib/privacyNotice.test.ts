@@ -23,15 +23,16 @@ describe('the privacy notice copy', () => {
     expect(fullNoticeText).toContain(CLAIM_CODE_WARNING);
   });
 
-  // The sentence exists because the claim transaction carries the code's
-  // SHA-256, and because `get_event` hands that digest to anyone who asks. If a
-  // contract change moves either half — the raw code starts being transmitted
-  // again, or the digest stops being public — the notice must change too, and
-  // this failure is the signal that it did not.
-  it('states that the code is hashed on the device and the digest is public', () => {
+  // The sentence exists because the claim transaction carries a hash of the
+  // attendee's own code, and because the public record no longer reveals one.
+  // If a contract change moves either half — the raw code starts being
+  // transmitted again, or something a claim can be made from becomes public —
+  // the notice must change too, and this failure is the signal that it did not.
+  it('states that the code is hashed on the device and is one per attendee', () => {
     expect(CLAIM_CODE_WARNING).toContain('never sent');
     expect(CLAIM_CODE_WARNING).toContain('your browser hashes it');
-    expect(CLAIM_CODE_WARNING).toContain('public on the event itself');
+    expect(CLAIM_CODE_WARNING).toContain('Each attendee has their own code');
+    expect(CLAIM_CODE_WARNING).toContain('one code is good for one badge');
   });
 
   it('has no empty strings anywhere in the short version', () => {

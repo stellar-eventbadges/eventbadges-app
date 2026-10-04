@@ -11,6 +11,8 @@ import {
   generateClaimCode,
   hashClaimCode,
   hexToBytes,
+  MAX_PROOF_DEPTH,
+  parseClaimProof,
   validateClaimCode,
 } from './claimCode';
 
@@ -88,6 +90,39 @@ describe('validateClaimCode', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.message).toContain(String(CLAIM_CODE_HEX_LENGTH));
+  });
+});
+
+describe('parseClaimProof', () => {
+  it('treats an empty string as the one-attendee proof', () => {
+    expect(parseClaimProof('')).toEqual({ ok: true, value: [] });
+    expect(parseClaimProof('   ')).toEqual({ ok: true, value: [] });
+  });
+
+  it('reads hex hashes separated by spaces, commas or newlines', () => {
+    const first = 'ab'.repeat(32);
+    const second = 'cd'.repeat(32);
+    const result = parseClaimProof(` ${first}, ${second}\n`);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toHaveLength(2);
+    expect(bytesToHex(result.value[0])).toBe(first);
+    expect(bytesToHex(result.value[1])).toBe(second);
+  });
+
+  it('refuses a part that is not 64 hex characters', () => {
+    expect(parseClaimProof(`${'ab'.repeat(32)} nope`).ok).toBe(false);
+    expect(parseClaimProof('ab').ok).toBe(false);
+  });
+
+  it('refuses a proof deeper than any tree the contract can hold', () => {
+    const deep = Array.from({ length: MAX_PROOF_DEPTH + 1 }, () => 'ab'.repeat(32)).join(' ');
+    const result = parseClaimProof(deep);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain(String(MAX_PROOF_DEPTH));
   });
 });
 

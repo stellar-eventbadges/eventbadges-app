@@ -40,20 +40,22 @@ Contract functions are called exactly as named in `src/lib.rs` in
 - **Wallets sign; the app never asks for, receives, stores or logs a secret key
   or seed phrase.** It only ever sees a public address and a signed XDR.
 - The **claim code is generated and hashed in the browser** (`crypto.subtle`,
-  see [ADR 0002](docs/decisions/0002-claim-codes-in-the-browser.md)); only the
-  SHA-256 goes into the transaction — on the organizer's side when the event is
-  created, and on the attendee's side when the badge is claimed, so the raw
-  code never enters a transaction at all. The code is shown once and kept
-  nowhere.
+  see [ADR 0002](docs/decisions/0002-claim-codes-in-the-browser.md)); only
+  hashes go into the transaction — the event's `claim_root` on the organizer's
+  side, and one attendee's leaf plus their proof on the attendee's side, so
+  the raw code never enters a transaction at all. The organizer screen still
+  generates **one** code, which therefore commits a one-attendee event;
+  generating a code per attendee and building the tree is
+  [draft 12](docs/issue-drafts/12-per-attendee-claim-tickets.md).
 - Every action that produces a transaction shows the **transaction hash and an
   explorer link**.
 - **The claim screen shows a privacy notice and will not sign until it is
   acknowledged.** The wording lives in `src/lib/privacyNotice.ts`, is traced
   sentence by sentence to the code in
   [docs/attendee-notice.md](docs/attendee-notice.md), and says plainly that
-  **the code is hashed before it is sent, and that the hash itself is public on
-  the event** — so the notice is still the reason it exists, for a narrower
-  exposure than the one it was written for.
+  **the code is hashed before it is sent, that each attendee has their own, and
+  that one code is good for one badge** — so the notice is still the reason it
+  exists, for a narrower exposure than the one it was written for.
 - **No analytics, no trackers, no third-party scripts, no backend.** The app
   sends nothing anywhere except to the Stellar RPC endpoint from `.env`, and
   the wallet picker's icons are served from local files so opening it makes no
@@ -81,7 +83,7 @@ stays a placeholder and the app shows the configuration notice.
 ```bash
 npm run lint        # oxlint
 npm run typecheck   # tsc -b (strict)
-npm test            # vitest, 159 tests: unit tests for src/lib, render + axe checks
+npm test            # vitest, 165 tests: unit tests for src/lib, render + axe checks
 npm run build       # tsc -b && vite build
 ```
 
@@ -131,7 +133,7 @@ Read this before trusting the app with anything.
 
 **Proven — actually executed, locally and in CI:**
 
-- 159 unit and render tests pass, including an automated axe-core
+- 165 unit and render tests pass, including an automated axe-core
   accessibility check on every screen and its states
   (`npm test`, [src/test](src/test)).
 - Lint (oxlint, 0 warnings), strict type-check (`tsc -b`), and a production

@@ -80,6 +80,48 @@ export function validateClaimCode(input: string): CodeCheck {
   return { ok: true, code: trimmed };
 }
 
+/**
+ * The deepest proof any tree the contract can hold will need:
+ * `MAX_PROOF_DEPTH` in `src/badges.rs`, which is `ceil(log2(MAX_CLAIMS_PER_EVENT))`.
+ */
+export const MAX_PROOF_DEPTH = 14;
+
+export type ProofCheck =
+  | { readonly ok: true; readonly value: Uint8Array<ArrayBuffer>[] }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Parses the organizer's Merkle proof — the sibling hashes between this
+ * attendee's leaf and the event's root, leaf level first — out of a pasted
+ * string of 64-character hex hashes separated by spaces, commas or newlines.
+ * An empty string is a valid proof, and the only one a one-attendee event
+ * needs, because there the root *is* the leaf.
+ */
+export function parseClaimProof(input: string): ProofCheck {
+  const trimmed = input.trim();
+  if (trimmed === '') return { ok: true, value: [] };
+
+  const parts = trimmed.split(/[\s,]+/).filter((part) => part !== '');
+  if (parts.length > MAX_PROOF_DEPTH) {
+    return { ok: false, message: `A claim proof has at most ${MAX_PROOF_DEPTH} hashes.` };
+  }
+
+  const value: Uint8Array<ArrayBuffer>[] = [];
+  for (const part of parts) {
+    // The leaf and each sibling are the same shape as a code: 64 hex chars.
+    const check = validateClaimCode(part);
+    if (!check.ok) {
+      return {
+        ok: false,
+        message: 'Each part of the proof is one 64-character hexadecimal hash.',
+      };
+    }
+    value.push(hexToBytes(check.code));
+  }
+
+  return { ok: true, value };
+}
+
 /** Formats a stored 32-byte hash as shortened hex: `0x1234abcd…`. */
 export function formatHashHex(bytes: Uint8Array, edge = 8): string {
   const hex = bytesToHex(bytes);

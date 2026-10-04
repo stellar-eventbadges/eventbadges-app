@@ -17,7 +17,7 @@ function event(overrides: Partial<EventRecord> = {}): EventRecord {
     id: 1n,
     organizer: ORGANIZER,
     nameHash: new Uint8Array(32),
-    claimCodeHash: new Uint8Array(32),
+    claimRoot: new Uint8Array(32),
     maxClaims: 100,
     closesAt: 1_800_000_000n,
     claimCount: 0,

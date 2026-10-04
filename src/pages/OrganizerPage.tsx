@@ -125,7 +125,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
           source: address,
           organizer: address,
           nameHash: hexToBytes(nameHashCheck.code),
-          claimCodeHash: hexToBytes(hashed.hashHex),
+          claimRoot: hexToBytes(hashed.hashHex),
           maxClaims: capCheck.value,
           closesAt: BigInt(closesSeconds),
         }),

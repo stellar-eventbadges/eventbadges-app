@@ -25,7 +25,7 @@ function eventScVal(overrides: Partial<EventRecord> = {}): ReturnType<typeof nat
     id: 1n,
     organizer: ORGANIZER,
     nameHash: new Uint8Array(32).fill(0x11),
-    claimCodeHash: new Uint8Array(32).fill(0x22),
+    claimRoot: new Uint8Array(32).fill(0x22),
     maxClaims: 100,
     closesAt: 1_790_000_000n,
     claimCount: 7,
@@ -37,7 +37,7 @@ function eventScVal(overrides: Partial<EventRecord> = {}): ReturnType<typeof nat
       id: event.id,
       organizer: event.organizer,
       name_hash: event.nameHash,
-      claim_code_hash: event.claimCodeHash,
+      claim_root: event.claimRoot,
       max_claims: event.maxClaims,
       closes_at: event.closesAt,
       claim_count: event.claimCount,
@@ -47,7 +47,7 @@ function eventScVal(overrides: Partial<EventRecord> = {}): ReturnType<typeof nat
         id: [null, 'u64'],
         organizer: [null, 'address'],
         name_hash: [null, 'bytes'],
-        claim_code_hash: [null, 'bytes'],
+        claim_root: [null, 'bytes'],
         max_claims: [null, 'u32'],
         closes_at: [null, 'u64'],
         claim_count: [null, 'u32'],
@@ -116,7 +116,7 @@ describe('response conversion', () => {
     expect(parsed.id).toBe(1n);
     expect(parsed.organizer).toBe(ORGANIZER);
     expect(parsed.nameHash).toEqual(new Uint8Array(32).fill(0x11));
-    expect(parsed.claimCodeHash).toEqual(new Uint8Array(32).fill(0x22));
+    expect(parsed.claimRoot).toEqual(new Uint8Array(32).fill(0x22));
     expect(parsed.maxClaims).toBe(100);
     expect(parsed.closesAt).toBe(1_790_000_000n);
     expect(parsed.claimCount).toBe(7);

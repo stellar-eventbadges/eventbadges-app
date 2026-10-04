@@ -33,11 +33,6 @@ export const CONTRACT_ERRORS: Readonly<Partial<Record<number, ContractErrorInfo>
     message: 'The claim window for this event has closed.',
     nextAction: 'Ask the organizer whether another proof of attendance exists.',
   },
-  11: {
-    variant: 'ClaimCodeMismatch',
-    message: 'That claim code is not valid for this event.',
-    nextAction: 'Check the code with the organizer and try again.',
-  },
   12: {
     variant: 'CapReached',
     message: 'This event has no badges left to issue.',
@@ -47,6 +42,17 @@ export const CONTRACT_ERRORS: Readonly<Partial<Record<number, ContractErrorInfo>
     variant: 'AlreadyHeld',
     message: 'This address already holds a badge for this event.',
     nextAction: 'Open the existing badge; nothing else to do.',
+  },
+  14: {
+    variant: 'ClaimProofInvalid',
+    message: 'That claim code is not valid for this event.',
+    nextAction:
+      'Check the code with the organizer and try again; each attendee has their own code.',
+  },
+  15: {
+    variant: 'ClaimCodeUsed',
+    message: 'That claim code has already been used.',
+    nextAction: 'Ask the organizer to revoke the badge that used it and award one instead.',
   },
   30: {
     variant: 'MaxClaimsTooLarge',

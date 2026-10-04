@@ -20,20 +20,24 @@ export interface NoticeSection {
 
 /**
  * The one sentence about the claim code. It is the reason this notice exists,
- * and it is the sentence that changed when
- * `eventbadges-contracts/docs/decisions/0002-claim-code-not-in-transactions.md`
- * landed: `claim` now takes the code's SHA-256, so the code itself never
- * enters a transaction. The digest does, and it is already public on the
- * event, so the warning moves from "your code is published" to "your code is
- * hashed, and the hash is public anyway".
+ * and it has changed twice with the contract:
+ *
+ * 1. ADR 0002 made `claim` take the code's SHA-256, so the code itself stopped
+ *    entering a transaction — but that digest was stored on the event and
+ *    readable by anyone, so the warning became "your code is hashed, and the
+ *    hash is public anyway".
+ * 2. ADR 0003 made each attendee's code their own leaf of a Merkle tree, and
+ *    the event now stores only the root. Leaves are not derivable from it and
+ *    a leaf is spent when used, so the public record no longer hands anyone
+ *    the means to claim: what remains is that a leaked code can be used first.
  *
  * It is named separately and interpolated into both lengths, and
  * `privacyNotice.test.ts` fails if it goes missing from either. If the
- * contract changes so the digest stops being readable through `get_event`,
- * this sentence becomes wrong and must change with it.
+ * contract ever publishes something a claim can be made from again, this
+ * sentence becomes wrong and must change with it.
  */
 export const CLAIM_CODE_WARNING =
-  'The claim code you type is never sent: your browser hashes it first. But that hash is public on the event itself, and it is all anyone needs to claim a place while any remain.';
+  'The claim code you type is never sent: your browser hashes it first, and only that hash goes to the network. Each attendee has their own code, and one code is good for one badge.';
 
 export const NOTICE_TITLE = 'Before you claim';
 
@@ -84,11 +88,11 @@ export const FULL_NOTICE_SECTIONS: readonly NoticeSection[] = [
     ],
   },
   {
-    heading: 'Your claim code is hashed, not hidden',
+    heading: 'Your claim code is yours alone',
     paragraphs: [
       CLAIM_CODE_WARNING,
-      'Hashing the code keeps the code itself out of the network, but it does not make the code a secret you can rely on. Anyone who reads the event can take one of the remaining places with it — claimed to their own address, not yours, so they cannot wear your badge, but they can use up a place. The badge cap and the closing date are the only limits.',
-      'If your claim code is ever exposed, tell the organizer. The only remedy today is for them to create a new event with a new code, because a stored hash cannot be rotated.',
+      'The event\u2019s public record holds one fingerprint of every attendee\u2019s code together, which is what the contract checks your code against. That fingerprint does not give anyone a code, and it cannot be used to claim: only someone holding a code can claim with it.',
+      'Keep your code to yourself anyway. If someone else gets it, they can use it before you do, and the one place it was good for is gone. Tell the organizer if that happens — they can take back the badge that used it and issue you one directly.',
     ],
   },
   {

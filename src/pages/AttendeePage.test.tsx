@@ -120,19 +120,56 @@ describe('<AttendeePage />', () => {
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
     expect(client.preparedClaims).toHaveLength(1);
-    const sent = client.preparedClaims[0].claimCodeHash;
+    const sent = client.preparedClaims[0].leafHash;
     expect(sent).toHaveLength(32);
     expect(bytesToHex(sent)).toBe(
       createHash('sha256').update(Buffer.from(CODE, 'hex')).digest('hex'),
     );
     // Not a value derived from the code by chance: the code's own bytes differ.
     expect(bytesToHex(sent)).not.toBe(CODE);
+    // No proof was pasted, which is what a one-attendee event needs.
+    expect(client.preparedClaims[0].proof).toEqual([]);
+  });
+
+  it('sends the pasted proof, one 32-byte sibling per part', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const wallet = walletFactory({ address });
+    const client = clientFactory([eventFactory()], [badgeFactory({ eventId: 1n, attendee: address })]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
+    const sibling = 'cd'.repeat(32);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim proof (optional)'), sibling);
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(client.preparedClaims).toHaveLength(1);
+    const proof = client.preparedClaims[0].proof;
+    expect(proof).toHaveLength(1);
+    expect(bytesToHex(proof[0])).toBe(sibling);
+  });
+
+  it('refuses a malformed proof before building a transaction', async () => {
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory()]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim proof (optional)'), 'not-a-hash');
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(await view.findByText(/64-character hexadecimal hash/)).not.toBeNull();
+    expect(client.preparedClaims).toHaveLength(0);
   });
 
   it('maps a contract error on claim to the ERRORS.md wording', async () => {
     const user = userEvent.setup();
     const client = clientFactory([eventFactory()]);
-    client.failNextWriteWith(new Error('HostError: Error(Contract, #11)'));
+    client.failNextWriteWith(new Error('HostError: Error(Contract, #14)'));
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
@@ -142,7 +179,9 @@ describe('<AttendeePage />', () => {
 
     const alert = await view.findByRole('alert');
     expect(alert.textContent).toContain('That claim code is not valid for this event.');
-    expect(alert.textContent).toContain('Check the code with the organizer and try again.');
+    expect(alert.textContent).toContain(
+      'Check the code with the organizer and try again; each attendee has their own code.',
+    );
   });
 
   it('lists the badges an address holds for the event id above', async () => {

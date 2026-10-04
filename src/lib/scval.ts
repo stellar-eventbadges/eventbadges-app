@@ -70,7 +70,7 @@ export function scValToEvent(retval: xdr.ScVal): EventRecord {
     id: asBigInt(raw.id, 'id'),
     organizer: asString(raw.organizer, 'organizer'),
     nameHash: asBytes(raw.name_hash, 'name_hash'),
-    claimCodeHash: asBytes(raw.claim_code_hash, 'claim_code_hash'),
+    claimRoot: asBytes(raw.claim_root, 'claim_root'),
     maxClaims: asNumber(raw.max_claims, 'max_claims'),
     closesAt: asBigInt(raw.closes_at, 'closes_at'),
     claimCount: asNumber(raw.claim_count, 'claim_count'),
