@@ -17,6 +17,13 @@
 > landed — `claim` takes the code's SHA-256 now, so the code is hashed on the
 > attendee's device and never sent.
 >
+> **Revised again later on 2026-10-04:**
+> [ADR 0003](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0003-per-attendee-claim-codes.md)
+> replaced the single stored digest with a Merkle root and the claim argument
+> with a leaf plus proof. The notice's claim-code paragraph was rewritten with
+> it again: the code is hashed on the attendee's device, and only a leaf and
+> proof are sent.
+>
 > **Still open, and not a copy question:** three of the four decisions in
 > `docs/attendee-notice.md` — who delivers the notice, whether a missing one
 > blocks the first pilot, and whether an acknowledgement recorded nowhere may
@@ -45,11 +52,14 @@ Two things are missing, and one of them is a surprise.
    could be told, and it was told nowhere.
 
    **Fixed 2026-10-04** by
-   [ADR 0002](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md),
-   which this draft forced: `claim` now takes the code's SHA-256, and the app
-   hashes before it builds the transaction. The notice still has to say what
-   remains true — that digest is public on the event, so the code was never a
-   secret the network protected.
+   [ADR 0002](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0002-claim-code-not-in-transactions.md)
+   and, later the same day,
+   [ADR 0003](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/decisions/0003-per-attendee-claim-codes.md),
+   which this draft forced: the claim transaction no longer carries the raw
+   code, only one attendee's leaf and its proof, and the app hashes before it
+   builds the transaction. The notice still has to say what remains true — the
+   leaf and proof are public, and a leaked code can be used first for one
+   place.
 
 Draft copy for both is written and every line is traced to code in
 [`docs/attendee-notice.md`](../attendee-notice.md); the shipped copy lives in
@@ -71,8 +81,8 @@ Draft copy for both is written and every line is traced to code in
 Out of scope: writing an organizer-side notice, recording or storing the
 acknowledgement, and any change to the contract. The contract-side fix for the
 claim-code exposure was a separate, larger decision recorded in `ROADMAP.md`,
-and it landed on 2026-10-04 (ADR 0002) rather than being shipped as part of
-this draft.
+and it landed on 2026-10-04 (ADRs 0002 and 0003) rather than being shipped as
+part of this draft.
 
 ## Acceptance criteria
 
@@ -81,9 +91,10 @@ this draft.
 - [ ] The full notice is reachable in one interaction and states, in these
       words or the maintainer's approved revision: the address is public and
       linkable; nothing is deletable; the organizer can revoke at any time; the
-      claim code is hashed before it is sent and the hash is public on the
-      event (revised 2026-10-04 from "the claim code is in the transaction and
-      permanent").
+      claim code is hashed before it is sent, only its leaf and proof are
+      public, and one code is good for one badge (revised 2026-10-04, twice:
+      first from "the claim code is in the transaction and permanent", then
+      for ADR 0003's leaf-and-proof).
 - [ ] The notice is a labelled region (`role="note"` or a `<fieldset>` with a
       `<legend>`), the checkbox has a real `<label>`, and the page still passes
       the axe check in `src/test/render.tsx`.

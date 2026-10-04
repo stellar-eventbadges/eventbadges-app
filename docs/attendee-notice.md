@@ -142,7 +142,7 @@ Every statement above traces to code that exists today. Nothing is aspirational.
 | "anyone can read it, with no wallet" | `get_event`, `has_badge`, `badges_of` have no `require_auth` — `src/lib.rs` |
 | "the moment you claimed" | `issued_at: now` from `env.ledger().timestamp()`, in the stored badge and in the transaction's own timestamp |
 | "linked across every event you claim from" | the badge is keyed by address; the same address is reused across events |
-| "the event's name is a hash, and can be worked out" | `name_hash: BytesN<32>` on `Event`; the claim-code and name hashes are low-entropy for human-chosen values — see [privacy.md](https://github.com/stellar-eventbadges/eventbadges-docs/blob/main/src/privacy.md) |
+| "the event's name is stored as a hash" / "someone determined can work it out" | `name_hash: BytesN<32>` on `Event`; human event names are low-entropy, so this hash can be brute-forced — see [privacy.md](https://github.com/stellar-eventbadges/eventbadges-docs/blob/main/src/privacy.md) |
 | "nothing can ever be deleted" | `revoke` removes the badge key and publishes `BadgeRevoked`, so the removal is itself permanent; see `docs/events.md` in the contracts repo |
 | "the organizer can remove your badge at any time" | `revoke` is deliberately not window-bound — see its doc comment in `src/badges.rs` |
 | "an organizer can issue a badge without you claiming" | `award(event_id, attendee)` requires only the organizer's signature, not the attendee's |
@@ -151,11 +151,8 @@ Every statement above traces to code that exists today. Nothing is aspirational.
 | "does not give anyone a code, and cannot be used to claim" | a root is not invertible into its leaves, and the pre-0003 design's public single digest — which *was* the value a claim presented — no longer exists (`get_event` returns the root instead) |
 | "one code is good for one badge" | `claim` writes `DataKey::RedeemedLeaf(event_id, leaf)` before minting and returns `ClaimCodeUsed` for a spent leaf; `AlreadyHeld` covers the same address claiming twice |
 | "they can take back the badge that used it and issue you one directly" | `revoke` frees the cap slot and is not window-bound; `award` requires only the organizer's signature |
-| "they cannot wear your badge" / "you cannot claim twice" | the `AlreadyHeld` check precedes issuance in `claim` and `award` |
-| "the badge cap and the closing date are the only limits" | `check_event_open`/`count_after_issue` enforce `max_claims`; the timestamp check enforces `closes_at` |
-| "a stored hash cannot be rotated" | v0 exposes seven entrypoints and none rotates `claim_code_hash` — `src/lib.rs` |
 | "the badge entry can eventually expire" | TTL is `closes_at` plus a 30-day margin with a 7-day floor, topped up only on access — `src/storage.rs` |
-| "testnet, never used with real people" | the app's README, "What is proven vs assumed": every contract call and wallet interaction is assumed, never exercised |
+| "testnet software that has never been used with real people" | the app's README, "What is proven vs assumed": every contract call and wallet interaction is assumed, never exercised |
 
 ### The line that changed
 
@@ -166,17 +163,19 @@ the raw secret rode in a public transaction. The docs book said the opposite —
 that "the chain never holds the claim code" — and was right about storage and
 wrong about the transaction argument.
 
-ADR 0002 removed the exposure instead of describing it: `claim` now takes the
-code's SHA-256, which the attendee's browser computes, and compares it to the
-stored hash. The sentence had to change with it, and the honest replacement is
-not simply softer. **The digest is public too** — `get_event` returns it to
-anyone — so the code was never a secret the network was protecting. What
-changed is that the attendee's raw code no longer enters a transaction; what did
-not change is that a leaked or observed digest can still take a place until the
-cap fills or the window closes.
+ADR 0002 removed the exposure instead of describing it: `claim` started taking
+the code's SHA-256, which the attendee's browser computes, instead of the code
+itself. The sentence had to change with it. But that digest was stored on the
+event and readable by anyone, so the code was still never a secret the network
+was protecting, and a leaked or observed digest could still take a place until
+the cap filled or the window closed.
 
-The Merkle-codes item on the roadmap fixes that remaining defect, and it is a
-different defect: one shared code per event means any holder can claim.
+ADR 0003 closed that the same day, and the sentence changed a second time: the
+event stores a Merkle root over one leaf per attendee, a claim carries one
+attendee's leaf and its proof, and a spent leaf cannot be reused. The public
+record no longer hands anyone the means to claim; what remains is that a leaked
+code can be used first, for one place. The shipped copy in
+`src/lib/privacyNotice.ts` is the result.
 
 ## Still open (the maintainer's decision, not this file's)
 

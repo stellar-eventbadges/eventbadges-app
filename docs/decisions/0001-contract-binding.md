@@ -16,10 +16,11 @@ contract (there is none to generate from).
 
 - `src/lib.rs` in `eventbadges-contracts` defines exactly seven entrypoints:
   `create_event`, `claim`, `award`, `revoke`, `get_event`, `has_badge`,
-  `badges_of`, with the argument types `Address`, `BytesN<32>`, `Bytes` (the
-  claim code), `u32` and `u64`.
+  `badges_of`, with the argument types `Address`, `BytesN<32>`, `Vec<BytesN<32>>`
+  (a Merkle proof), `u32` and `u64` (since ADR 0003; the original v0 `Bytes`
+  claim code is gone).
 - `src/types.rs` shows the `Event` and `Badge` structs are stored with
-  snake_case field names on-chain (`name_hash`, `claim_code_hash`,
+  snake_case field names on-chain (`name_hash`, `claim_root`,
   `max_claims`, `closes_at`, `claim_count`, `event_id`, `issued_at`), which is
   what `scValToNative` returns for a Soroban struct.
 - Scaffold Stellar's generated-client flow was already rejected for this repo

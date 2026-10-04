@@ -21,7 +21,7 @@ export function u64ToScVal(value: bigint): xdr.ScVal {
   return nativeToScVal(value, { type: 'u64' });
 }
 
-/** `BytesN<32>` — the opaque `name_hash`, `claim_code_hash`, or claim code. */
+/** `BytesN<32>` — the opaque `name_hash`, `claim_root`, or claim leaf. */
 export function bytes32ToScVal(bytes: Uint8Array): xdr.ScVal {
   if (bytes.length !== CLAIM_CODE_BYTES) {
     throw new Error(`a contract hash is exactly ${CLAIM_CODE_BYTES} bytes, got ${bytes.length}`);

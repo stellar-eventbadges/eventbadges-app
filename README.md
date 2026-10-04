@@ -2,7 +2,8 @@
 
 A small web app for **attendance badges** on Stellar testnet. An organizer
 records an event with a badge cap and a claim deadline, generates a secret
-claim code whose hash alone goes on-chain, and shares the code out-of-band.
+claim code, commits it on-chain only as a hash, and shares the code
+out-of-band.
 Attendees claim a badge bound to their own address; the contract has no way to
 move a badge, which is what makes the proof worth something. Anyone can verify
 that an address holds a badge for an event, with no wallet at all.

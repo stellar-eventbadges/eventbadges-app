@@ -67,8 +67,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     });
     if (!idCheck.ok || !codeCheck.ok || !proofCheck.ok) return;
 
-    // The contract takes the code's SHA-256, not the code: hashing here keeps
-    // the raw secret on this device and out of the transaction.
+    // The contract takes the code's leaf and proof, not the code: hashing here
+    // keeps the raw secret on this device and out of the transaction.
     const hashed = await hashClaimCode(codeCheck.code);
     if (!hashed.ok) {
       setFieldErrors((prev) => ({ ...prev, claimCode: hashed.message }));

@@ -7,4 +7,4 @@ re-evaluate.
 | # | Decision | Status |
 |---|---|---|
 | [0001](0001-contract-binding.md) | Hand-built contract client, no generated code | accepted |
-| [0002](0002-claim-codes-in-the-browser.md) | Claim codes are generated and hashed in the browser | accepted |
+| [0002](0002-claim-codes-in-the-browser.md) | Claim codes are generated and hashed in the browser | accepted — claim half extended by contracts ADR 0003 |

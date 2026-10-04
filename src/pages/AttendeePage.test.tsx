@@ -104,7 +104,7 @@ describe('<AttendeePage />', () => {
     expect(await view.findByText('Badge for event #1')).not.toBeNull();
   });
 
-  // The contract takes the claim code's SHA-256. If the page ever sends the
+  // The contract takes the code's leaf and proof. If the page ever sends the
   // code itself again, the raw secret is back in a public transaction and this
   // test is the tripwire.
   it('sends the code’s SHA-256, never the code', async () => {
