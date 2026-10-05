@@ -35,10 +35,12 @@
 > modules are no longer in it (draft 06, decision C).
 >
 > **Verified how.** `npm run lint` (0 warnings / 0 errors), `npm run typecheck`,
-> `npm test` (185 tests / 26 files), `npm run build`; and in a browser against
-> the dev server: clicking Connect opens the picker with exactly the eight
-> offered wallets, every icon loads from the local `/wallet-icons/`, closing
-> the picker returns the button to `Connect wallet`, and the kit's MetaMask
+> `npm test` (185 tests / 26 files at the change; 194 / 27 after a follow-up
+> hook test added for the connect error path), `npm run build`; and in a
+> browser against the dev server: clicking Connect opens the picker with exactly
+> the eight offered wallets, every icon loads from the local `/wallet-icons/`,
+> closing the picker returns the button to `Connect wallet` and reports the
+> kit's own reason (`The user closed the modal.`, 2026-10-05), and the kit's MetaMask
 > `Failed to restore … TransportTimeoutError` warning is gone because that
 > module is no longer in the bundle. **Not verified:** no real wallet has ever
 > been installed, connected or signed through this app, so the lazy path is

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { messageOf } from '../lib/contractErrors';
 import {
   checkWalletNetwork,
   connectWallet,
@@ -76,7 +77,12 @@ export function useWallet(): WalletController {
       setAddress(connected);
       await refreshNetwork();
     } catch (thrown) {
-      setError(thrown instanceof Error ? thrown.message : 'The wallet did not connect.');
+      // The kit rejects with plain `{ code, message }` objects, not Errors —
+      // `messageOf` is the one place in the app that knows how to read those.
+      // The wording stays the kit's own: it is the only party that can say why
+      // the connect failed, and a generic replacement would hide a real reason.
+      const reason = messageOf(thrown);
+      setError(reason === '' ? 'The wallet did not connect.' : reason);
     } finally {
       setConnecting(false);
     }

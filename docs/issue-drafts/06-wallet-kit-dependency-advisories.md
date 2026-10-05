@@ -94,7 +94,7 @@ without saying so; and any change to the contract.
 
 - [x] Each advisory is recorded with its package, the advisory link, and whether this app can reach the vulnerable code. — recorded above with the decision: as of 2026-10-05 the code is not bundled, so the app cannot reach it at runtime; the packages remain installed.
 - [x] A decision (A, B or C) is stated with its reasoning, and the alternative it rejected. — C, with A and B rejected above.
-- [x] Whichever option is chosen, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass, and the connect flow still opens the wallet picker (recorded honestly, including that no real wallet has signed yet). — lint 0/0, typecheck clean, 185 tests / 26 files, build OK; the picker was opened in a browser and lists exactly the eight offered wallets. No real wallet has signed.
+- [x] Whichever option is chosen, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass, and the connect flow still opens the wallet picker (recorded honestly, including that no real wallet has signed yet). — lint 0/0, typecheck clean, 185 tests / 26 files at the change (194 / 27 after the follow-up hook test), build OK; the picker was opened in a browser and lists exactly the eight offered wallets. No real wallet has signed.
 - [x] The `npm audit` numbers in this draft are refreshed at the time of the decision. — 19 vulnerabilities (12 low, 7 moderate), 2026-10-05, unchanged before and after the change.
 
 ## Where to start

@@ -86,8 +86,13 @@ export interface MappedError {
   readonly code?: number;
 }
 
-/** Pulls the message text out of whatever was thrown. */
-function messageOf(error: unknown): string {
+/**
+ * Pulls the message text out of whatever was thrown. Returns an empty string
+ * when there is nothing to pass on. Exported because callers that only need the
+ * text — the wallet hook, for one — must not re-implement this and get the plain
+ * `{ code, message }` objects a wallet kit rejects with wrong.
+ */
+export function messageOf(error: unknown): string {
   if (typeof error === 'string') return error;
   if (error instanceof Error) return error.message;
   if (error !== null && typeof error === 'object' && 'message' in error) {
