@@ -380,6 +380,41 @@ legend {
   margin-bottom: 0;
 }
 
+/* The badge's deterministic mark. Decorative: the record below it is the
+   content, and the SVG is aria-hidden. Every colour comes from the accent
+   tokens, so the mark stays inside the palette the rest of the app uses. */
+.badge-art {
+  width: 7.5rem;
+  margin-bottom: 0.85rem;
+}
+.badge-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.badge-art-face {
+  fill: var(--accent-soft);
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+.badge-art-ring {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+.badge-art-spoke {
+  stroke: var(--accent-strong);
+  stroke-linecap: round;
+}
+.badge-art-tick {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.badge-art-core {
+  fill: var(--accent-strong);
+}
+
 .notice {
   border: 1px solid var(--line);
   border-left: 6px solid var(--line-strong);

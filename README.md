@@ -86,7 +86,7 @@ stays a placeholder and the app shows the configuration notice.
 ```bash
 npm run lint        # oxlint
 npm run typecheck   # tsc -b (strict)
-npm test            # vitest, 194 tests: unit tests for src/lib, render + axe checks
+npm test            # vitest: unit tests for src/lib, render + axe checks
 npm run build       # tsc -b && vite build
 ```
 
@@ -138,7 +138,7 @@ Read this before trusting the app with anything.
 
 **Proven — actually executed, locally and in CI:**
 
-- 194 unit and render tests pass, including an automated axe-core
+- 204 unit and render tests pass, including an automated axe-core
   accessibility check on every screen and its states
   (`npm test`, [src/test](src/test)).
 - Lint (oxlint, 0 warnings), strict type-check (`tsc -b`), and a production

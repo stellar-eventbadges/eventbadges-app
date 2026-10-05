@@ -22,6 +22,12 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       an explicit acknowledgement (2026-10-03, draft 11). Short notice plus an
       in-place full version, copy in `src/lib/privacyNotice.ts`, axe-checked.
       **Never shown to a person** — see the README's proven-vs-assumed.
+- [x] A mark on every badge card, drawn from the badge's own bytes (2026-10-05,
+      draft 03): FNV-1a over `eventId` + `issuedAt` + holder address into a
+      mulberry32 PRNG, rendered as inline SVG from the existing accent tokens.
+      Deterministic, no image file, no request, `aria-hidden`, and the on-chain
+      record below it unchanged. **Generated geometry, not designed artwork** —
+      a real illustration is still open if the pilot wants one.
 - [x] Wallet kit off the first paint, loaded only for the eight Stellar
       wallets the app offers (2026-10-05, drafts 07 and 06 option C): initial
       chunk 1,058.76 kB / 267.30 kB gzip → 809.82 kB / 191.97 kB gzip, and the
@@ -41,9 +47,10 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 - Attendee: enter a code (scanning is draft 02), claim, see badges.
 - Public: verify that an address holds a badge for an event, no wallet needed.
 
-Known app gaps, deliberately out of v0 and drafted: badge artwork (03),
-share-to-social card (04), CSV export of attendees (05, opt-in only), restore
-of archived records (09).
+Known app gaps, deliberately out of v0 and drafted: share-to-social card (04),
+CSV export of attendees (05, opt-in only), restore of archived records (09),
+and real designed badge artwork — the generated mark from draft 03 is what
+`BadgeArt` draws today.
 
 ## Decisions needed from Tim
 

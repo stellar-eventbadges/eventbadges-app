@@ -54,8 +54,9 @@ export function HomePage({ config, wallet }: PageProps) {
           </li>
           <li>There has been no security review or audit. Do not treat this as safe for real money.</li>
           <li>
-            The app cannot scan QR codes, show badge artwork, or list an event&rsquo;s attendees
-            (the contract deliberately stores no such list).
+            Badge artwork is a local drawing of the badge&rsquo;s own bytes, not an uploaded image,
+            and the app still cannot scan QR codes or list an event&rsquo;s attendees (the contract
+            deliberately stores no such list).
           </li>
         </ul>
         <p className="hint mono">Contract: {config.contractId}</p>

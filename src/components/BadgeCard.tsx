@@ -1,14 +1,16 @@
+import { BadgeArt } from './BadgeArt';
 import type { BadgeRecord } from '../lib/badge';
 import { formatDateTime } from '../lib/datetime';
 import { shorten } from '../lib/explorer';
 
 /**
- * One held badge. The record is what the contract stores; there is no artwork
- * or metadata in v0 (deliberately — see the ROADMAP).
+ * One held badge: the artwork, then the record. The record is what the contract
+ * stores; the mark is drawn from those same bytes and claims nothing extra.
  */
 export function BadgeCard({ badge }: { badge: BadgeRecord }) {
   return (
     <section className="card" aria-labelledby={`badge-${badge.eventId.toString()}-heading`}>
+      <BadgeArt badge={badge} />
       <h2 id={`badge-${badge.eventId.toString()}-heading`}>
         Badge for event #{badge.eventId.toString()}
       </h2>
