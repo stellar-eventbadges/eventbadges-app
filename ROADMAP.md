@@ -40,9 +40,10 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       draft 05): a pure builder with formula-injection guards and a
       deterministic `eventbadges-<event id>-<date>.csv` name, and a control on
       the claim screen's badge list and the verify screen's result that says in
-      the UI it is not a roster. **Never downloaded in a real browser.**
-      An organizer-side export stays impossible until the contract can list an
-      event's attendees.
+      the UI it is not a roster. **Downloaded once in a real browser** (fake
+      records injected, since nothing is deployed): Chromium wrote the
+      deterministic file with the expected bytes. An organizer-side export
+      stays impossible until the contract can list an event's attendees.
 - [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
       by what the first pilot actually needs: the QR claim code (01), mobile
       wallet story (10), and the rest.

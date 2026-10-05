@@ -160,6 +160,12 @@ Read this before trusting the app with anything.
   the organizer render test.
 - The wrong-network refusal: a write against a wallet that is not on testnet
   fails **before** any transaction is prepared (`src/lib/flow.test.ts`).
+- Two things have been **seen working in a real browser** (Chromium, against
+  the dev server): the badge mark, rendered from the app's own `BadgeCard` for
+  several badges, and the opt-in CSV, whose button made the browser write
+  `eventbadges-7-2026-10-05.csv` with the expected bytes. Both used records
+  injected into the page — no contract is deployed, so no screen has yet shown
+  a record read off a real network.
 
 **Assumed — written, reviewed, never exercised against the real thing:**
 

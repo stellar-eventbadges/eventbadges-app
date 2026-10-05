@@ -66,10 +66,14 @@ never shown.
   nor exported.
 - Suite at the time: **225 tests in 30 files** (was 204 in 28), lint 0
   warnings, strict type-check clean, production build OK.
-- **Not verified:** nobody has pressed the button in a real browser, so the
-  file a browser actually saves has never been inspected. The Blob and the
-  anchor call are exercised in happy-dom; the browser pass is part of the
-  pre-pilot browser check.
+- **Verified how, beyond the tests:** the control was mounted with two fake
+  records in a real Chromium page (the app's dev server, records injected
+  because no contract is deployed), its button was pressed with a real click,
+  and the browser wrote `eventbadges-7-2026-10-05.csv` — 364 bytes, contents
+  compared byte for byte against `badgesToCsv`, CRLF endings intact. The Blob,
+  the MIME type and the anchor name are also asserted in happy-dom. **Still
+  unproven:** the file a browser saves from records read off a *deployed*
+  contract, since nothing is deployed.
 
 ## Where to start
 

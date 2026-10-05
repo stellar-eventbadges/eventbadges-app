@@ -25,13 +25,20 @@
 > without touching the record it sits on.
 >
 > **Verified how.** `npm test` (6 generator tests in `src/lib/badgeArt.test.ts`,
-> 8 card tests including the axe check; the whole suite is 204 tests in 28
-> files), plus lint, typecheck and build in the commit that landed it. The real
-> component was also rendered in the running app's own page context for six
-> different badges, which produced six distinct SVGs with the expected
-> structure — with the drawing's pixels **not** looked at: the preview
-> screenshot capture produced no frames this session. Geometry, structure and
-> determinism are checked; the look of it is not.
+> 8 card tests including the axe check; the whole suite was 204 tests in 28
+> files at that commit, 225 in 30 after the CSV export), plus lint, typecheck
+> and build in the commit that landed it. The real component was rendered in
+> the running app's own page context for six different badges, which produced
+> six distinct SVGs with the expected structure.
+>
+> **The pixels were looked at on 2026-10-05.** The real `BadgeCard` (artwork,
+> record and app stylesheet) was mounted for three badges in a Chromium page
+> and inspected: three distinct marks, each a light face with two dashed rings,
+> variable spokes, ticks and a small core in the accent colour, centred in the
+> card with no clipping, and the record below them unchanged. It reads as a
+> generated medallion, not an illustration — which is what this draft says it
+> is. Nothing was compared against a designed reference, because there is
+> none.
 
 
 ## Problem
