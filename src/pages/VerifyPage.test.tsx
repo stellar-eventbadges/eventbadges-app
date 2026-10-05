@@ -36,6 +36,30 @@ describe('<VerifyPage />', () => {
     expect(view.container.querySelector('[role="status"]')).not.toBeNull();
   });
 
+  it('offers a CSV of exactly the records the check read', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const other = fakeAccount();
+    const mine = badgeFactory({ eventId: 1n, attendee: address });
+    const alsoMine = badgeFactory({ eventId: 1n, attendee: address, issuedAt: 1_790_000_500n });
+    const theirs = badgeFactory({ eventId: 1n, attendee: other, issuedAt: 1_790_000_900n });
+    const client = clientFactory([eventFactory()], [mine, alsoMine, theirs]);
+    const view = renderOnly(<VerifyPage {...pagePropsFactory({ client })} />);
+
+    // Nothing to export until a check has read something.
+    expect(view.queryByRole('button', { name: /as CSV/ })).toBeNull();
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Attendee address'), address);
+    await user.click(view.getByRole('button', { name: 'Verify' }));
+
+    expect(
+      await view.findByRole('button', { name: 'Download 2 badge records as CSV' }),
+    ).not.toBeNull();
+    expect(textOf(view.container)).toContain('not the event’s other attendees');
+    expect(textOf(view.container)).not.toContain(theirs.attendee);
+  });
+
   it('says plainly when the address holds nothing', async () => {
     const user = userEvent.setup();
     const client = clientFactory([eventFactory()], []);

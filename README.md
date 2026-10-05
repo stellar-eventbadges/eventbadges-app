@@ -24,8 +24,8 @@ Part of the eventbadges project, which is three repositories:
 |---|---|---|
 | Home | anyone | Explains the flow, connects a wallet, states what has not happened yet |
 | Organizer | organizer | Records an event (name hash, cap, deadline), generates one ticket per attendee (their code and proof) and shows them once, then awards or revokes badges |
-| Claim | attendee | Shows the privacy notice, claims a badge with the organizer's ticket once acknowledged, then lists the badges an address holds for an event |
-| Verify | anyone, no wallet | Checks that an address holds a badge for an event, and shows the record |
+| Claim | attendee | Shows the privacy notice, claims a badge with the organizer's ticket once acknowledged, then lists the badges an address holds for an event, with an opt-in CSV of exactly those records |
+| Verify | anyone, no wallet | Checks that an address holds a badge for an event, shows the record, and offers the same opt-in CSV |
 
 Contract functions are called exactly as named in `src/lib.rs` in
 `eventbadges-contracts`: `create_event`, `claim`, `award`, `revoke`,
@@ -65,6 +65,11 @@ Contract functions are called exactly as named in `src/lib.rs` in
   request at all.
 - The badge cap field accepts **only 1–10,000**, the same bound the contract
   enforces, with the same wording as the contract's `MaxClaimsTooLarge` error.
+- **The CSV export is opt-in and holds only what the page has read.** Nothing
+  downloads until the button is pressed; the file is built in the browser, its
+  name is `eventbadges-<event id>-<UTC date>.csv`, and the control says in
+  plain words that it is not the event's attendee list — v0's contract has no
+  way to list attendees (`src/lib/badgeCsv.ts`, draft 05).
 
 ## Getting started
 
@@ -101,6 +106,7 @@ All four run in CI ([.github/workflows/web.yml](.github/workflows/web.yml)).
 │   │   ├── network.ts     #   config resolution, testnet-only refusal
 │   │   ├── datetime.ts    #   Unix seconds <-> local input
 │   │   ├── claimCode.ts   #   generate / hash / validate claim codes
+│   │   ├── badgeCsv.ts    #   opt-in CSV of records the app has read
 │   │   ├── badge.ts       #   Event and Badge records, window and cap rules
 │   │   ├── validation.ts  #   address, event id and cap checks
 │   │   ├── contractErrors.ts  # error code -> ERRORS.md wording
@@ -138,7 +144,7 @@ Read this before trusting the app with anything.
 
 **Proven — actually executed, locally and in CI:**
 
-- 204 unit and render tests pass, including an automated axe-core
+- 225 unit and render tests pass, including an automated axe-core
   accessibility check on every screen and its states
   (`npm test`, [src/test](src/test)).
 - Lint (oxlint, 0 warnings), strict type-check (`tsc -b`), and a production

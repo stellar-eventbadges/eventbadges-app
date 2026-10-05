@@ -36,6 +36,13 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       `npm audit` still reports 19 advisories — the packages remain installed,
       they are simply no longer shipped. Picker opened in a browser; **no real
       wallet has connected or signed**.
+- [x] Opt-in CSV export of the badge records a screen has read (2026-10-05,
+      draft 05): a pure builder with formula-injection guards and a
+      deterministic `eventbadges-<event id>-<date>.csv` name, and a control on
+      the claim screen's badge list and the verify screen's result that says in
+      the UI it is not a roster. **Never downloaded in a real browser.**
+      An organizer-side export stays impossible until the contract can list an
+      event's attendees.
 - [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
       by what the first pilot actually needs: the QR claim code (01), mobile
       wallet story (10), and the rest.
@@ -48,9 +55,10 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 - Public: verify that an address holds a badge for an event, no wallet needed.
 
 Known app gaps, deliberately out of v0 and drafted: share-to-social card (04),
-CSV export of attendees (05, opt-in only), restore of archived records (09),
-and real designed badge artwork — the generated mark from draft 03 is what
-`BadgeArt` draws today.
+restore of archived records (09), real designed badge artwork — the generated
+mark from draft 03 is what `BadgeArt` draws today — and an attendee roster: CSV
+export now exists for the records a screen has read (05), but nothing can list
+an event's attendees until the contract gains that entrypoint.
 
 ## Decisions needed from Tim
 

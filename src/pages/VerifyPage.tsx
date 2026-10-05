@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { BadgeCard } from '../components/BadgeCard';
+import { CsvExport } from '../components/CsvExport';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { Field } from '../components/Field';
 import { useAction } from '../hooks/useAction';
@@ -108,8 +109,14 @@ export function VerifyPage({ client }: PageProps) {
           </div>
         )}
 
-        {result !== null &&
-          result.badges.map((badge) => <BadgeCard key={badge.issuedAt.toString()} badge={badge} />)}
+        {result !== null && (
+          <>
+            {result.badges.map((badge) => (
+              <BadgeCard key={badge.issuedAt.toString()} badge={badge} />
+            ))}
+            <CsvExport badges={result.badges} />
+          </>
+        )}
       </fieldset>
     </section>
   );

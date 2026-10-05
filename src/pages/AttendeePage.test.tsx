@@ -251,6 +251,31 @@ describe('<AttendeePage />', () => {
     expect(await view.findByText('Badge for event #2')).not.toBeNull();
   });
 
+  it('offers a CSV of exactly the records the lookup read, and only after it', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const wallet = walletFactory({ address });
+    const other = fakeAccount();
+    const mine = badgeFactory({ eventId: 2n, attendee: address });
+    const alsoMine = badgeFactory({ eventId: 2n, attendee: address, issuedAt: 1_790_000_500n });
+    const theirs = badgeFactory({ eventId: 2n, attendee: other, issuedAt: 1_790_000_900n });
+    const client = clientFactory([eventFactory({ id: 2n })], [mine, alsoMine, theirs]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
+
+    // Nothing to export before a read, even though the page is mounted.
+    expect(view.queryByRole('button', { name: /as CSV/ })).toBeNull();
+
+    await user.type(view.getByLabelText('Event id'), '2');
+    await user.click(view.getByRole('button', { name: 'Show badges' }));
+
+    // The lookup read one address's two records, so the export offers those.
+    expect(
+      await view.findByRole('button', { name: 'Download 2 badge records as CSV' }),
+    ).not.toBeNull();
+    expect(textOf(view.container)).toContain('not the event’s other attendees');
+    expect(textOf(view.container)).not.toContain(theirs.attendee);
+  });
+
   it('says plainly when no badge exists for that address and event', async () => {
     const user = userEvent.setup();
     const client = clientFactory([eventFactory()], []);

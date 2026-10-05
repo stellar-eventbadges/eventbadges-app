@@ -56,7 +56,8 @@ export function HomePage({ config, wallet }: PageProps) {
           <li>
             Badge artwork is a local drawing of the badge&rsquo;s own bytes, not an uploaded image,
             and the app still cannot scan QR codes or list an event&rsquo;s attendees (the contract
-            deliberately stores no such list).
+            deliberately stores no such list). A CSV download holds only the records the page has
+            just read, never the whole event.
           </li>
         </ul>
         <p className="hint mono">Contract: {config.contractId}</p>

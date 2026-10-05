@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { BadgeCard } from '../components/BadgeCard';
 import { ConnectPrompt } from '../components/ConnectPrompt';
+import { CsvExport } from '../components/CsvExport';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { Field } from '../components/Field';
 import { PrivacyNotice } from '../components/PrivacyNotice';
@@ -241,6 +242,9 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
             )}
           </div>
         )}
+        {/* Outside the live region above: the export sentence should not be
+            part of the announcement that a lookup returned. */}
+        {badges !== null && <CsvExport badges={badges} />}
       </fieldset>
     </section>
   );
