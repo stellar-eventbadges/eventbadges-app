@@ -8,11 +8,13 @@ import {
   CLAIM_CODE_BYTES,
   CLAIM_CODE_HEX_LENGTH,
   formatHashHex,
+  formatTicket,
   generateClaimCode,
   hashClaimCode,
   hexToBytes,
   MAX_PROOF_DEPTH,
   parseClaimProof,
+  parseClaimTicket,
   validateClaimCode,
 } from './claimCode';
 
@@ -123,6 +125,64 @@ describe('parseClaimProof', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.message).toContain(String(MAX_PROOF_DEPTH));
+  });
+});
+
+describe('parseClaimTicket', () => {
+  it('reads a bare code as a ticket with no proof, normalising case', () => {
+    const result = parseClaimTicket(`  ${'AB'.repeat(32)} `);
+    expect(result).toEqual({ ok: true, code: 'ab'.repeat(32), proofText: '' });
+  });
+
+  it('splits code:proof and keeps the proof text for parseClaimProof', () => {
+    const result = parseClaimTicket(`${'ab'.repeat(32)}:${'cd'.repeat(32)}, ${'ef'.repeat(32)}`);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.code).toBe('ab'.repeat(32));
+    expect(parseClaimProof(result.proofText)).toEqual({
+      ok: true,
+      value: [hexToBytes('cd'.repeat(32)), hexToBytes('ef'.repeat(32))],
+    });
+  });
+
+  it('accepts the code and proof separated by whitespace alone', () => {
+    const result = parseClaimTicket(`${'ab'.repeat(32)} ${'cd'.repeat(32)}`);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.code).toBe('ab'.repeat(32));
+    expect(result.proofText).toBe('cd'.repeat(32));
+  });
+
+  it('refuses an empty ticket with the ask-the-organizer message', () => {
+    const result = parseClaimTicket('   ');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.message).toContain('claim code');
+  });
+
+  it('refuses a code that is not 64 hex characters, ticket or not', () => {
+    expect(parseClaimTicket('nope').ok).toBe(false);
+    expect(parseClaimTicket(`nope:${'cd'.repeat(32)}`).ok).toBe(false);
+    expect(parseClaimTicket(`:${'cd'.repeat(32)}`).ok).toBe(false);
+  });
+});
+
+describe('formatTicket', () => {
+  it('is the code alone when there is no proof, and code:proof otherwise', () => {
+    expect(formatTicket('ab'.repeat(32), [])).toBe('ab'.repeat(32));
+    expect(formatTicket('ab'.repeat(32), ['cd'.repeat(32), 'ef'.repeat(32)])).toBe(
+      `${'ab'.repeat(32)}:${'cd'.repeat(32)} ${'ef'.repeat(32)}`,
+    );
+  });
+
+  it('round-trips through parseClaimTicket, codes and proof together', () => {
+    const code = 'ab'.repeat(32);
+    const proof = ['cd'.repeat(32), 'ef'.repeat(32)];
+    const parsed = parseClaimTicket(formatTicket(code, proof));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.code).toBe(code);
+    expect(parsed.proofText).toBe(proof.join(' '));
   });
 });
 

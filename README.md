@@ -1,9 +1,9 @@
 # eventbadges — app
 
 A small web app for **attendance badges** on Stellar testnet. An organizer
-records an event with a badge cap and a claim deadline, generates a secret
-claim code, commits it on-chain only as a hash, and shares the code
-out-of-band.
+records an event with a badge cap and a claim deadline, generates one secret
+claim code per attendee, commits them together as one Merkle root, and shares
+each code out-of-band.
 Attendees claim a badge bound to their own address; the contract has no way to
 move a badge, which is what makes the proof worth something. Anyone can verify
 that an address holds a badge for an event, with no wallet at all.
@@ -23,8 +23,8 @@ Part of the eventbadges project, which is three repositories:
 | Page | Who | What it does |
 |---|---|---|
 | Home | anyone | Explains the flow, connects a wallet, states what has not happened yet |
-| Organizer | organizer | Records an event (name hash, cap, deadline), generates and shows the claim code once, then awards or revokes badges |
-| Claim | attendee | Shows the privacy notice, claims a badge with the organizer's code once acknowledged, then lists the badges an address holds for an event |
+| Organizer | organizer | Records an event (name hash, cap, deadline), generates one ticket per attendee (their code and proof) and shows them once, then awards or revokes badges |
+| Claim | attendee | Shows the privacy notice, claims a badge with the organizer's ticket once acknowledged, then lists the badges an address holds for an event |
 | Verify | anyone, no wallet | Checks that an address holds a badge for an event, and shows the record |
 
 Contract functions are called exactly as named in `src/lib.rs` in
@@ -44,10 +44,12 @@ Contract functions are called exactly as named in `src/lib.rs` in
   see [ADR 0002](docs/decisions/0002-claim-codes-in-the-browser.md)); only
   hashes go into the transaction — the event's `claim_root` on the organizer's
   side, and one attendee's leaf plus their proof on the attendee's side, so
-  the raw code never enters a transaction at all. The organizer screen still
-  generates **one** code, which therefore commits a one-attendee event;
-  generating a code per attendee and building the tree is
-  [draft 12](docs/issue-drafts/12-per-attendee-claim-tickets.md).
+  the raw code never enters a transaction at all. The organizer screen
+  generates **one code per attendee**, builds the Merkle tree in the browser
+  (`src/lib/merkle.ts`), and shows each attendee's single-use ticket once;
+  nothing is stored anywhere. The claim screen accepts a whole ticket in its
+  first field — the code, or `code:proof` — and keeps a separate proof field
+  for codes shared without one.
 - Every action that produces a transaction shows the **transaction hash and an
   explorer link**.
 - **The claim screen shows a privacy notice and will not sign until it is
@@ -84,7 +86,7 @@ stays a placeholder and the app shows the configuration notice.
 ```bash
 npm run lint        # oxlint
 npm run typecheck   # tsc -b (strict)
-npm test            # vitest, 165 tests: unit tests for src/lib, render + axe checks
+npm test            # vitest, 185 tests: unit tests for src/lib, render + axe checks
 npm run build       # tsc -b && vite build
 ```
 
@@ -134,7 +136,7 @@ Read this before trusting the app with anything.
 
 **Proven — actually executed, locally and in CI:**
 
-- 165 unit and render tests pass, including an automated axe-core
+- 185 unit and render tests pass, including an automated axe-core
   accessibility check on every screen and its states
   (`npm test`, [src/test](src/test)).
 - Lint (oxlint, 0 warnings), strict type-check (`tsc -b`), and a production
@@ -144,6 +146,10 @@ Read this before trusting the app with anything.
 - The claim code's browser SHA-256 matches Node's own SHA-256 (cross-checked in
   `src/lib/claimCode.test.ts`), and the ScVal conversions round-trip the exact
   structs the contract stores.
+- The ticket tree matches fixed vectors computed independently with .NET's
+  SHA-256, and every proof folds back to the committed root
+  (`src/lib/merkle.test.ts`), which is asserted again per generated ticket in
+  the organizer render test.
 - The wrong-network refusal: a write against a wallet that is not on testnet
   fails **before** any transaction is prepared (`src/lib/flow.test.ts`).
 

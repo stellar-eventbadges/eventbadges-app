@@ -45,6 +45,10 @@ export type ClaimsCheck =
   | { readonly ok: true; readonly value: number }
   | { readonly ok: false; readonly message: string };
 
+export type CountCheck =
+  | { readonly ok: true; readonly value: number }
+  | { readonly ok: false; readonly message: string };
+
 /**
  * The badge cap, validated against the same bounds the contract enforces
  * (`MAX_CLAIMS_PER_EVENT` in `src/badges.rs`), so the obvious mistakes fail
@@ -62,6 +66,29 @@ export function validateMaxClaims(input: string): ClaimsCheck {
   if (!Number.isSafeInteger(value) || value < 1 || value > MAX_CLAIMS_PER_EVENT) {
     // Same wording as the MaxClaimsTooLarge row in ERRORS.md.
     return { ok: false, message: 'The badge cap must be between 1 and 10,000.' };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * How many tickets to generate: one claim code per attendee. The count cannot
+ * exceed the cap, because every ticket takes one of its places; a larger cap
+ * is still allowed — those places are for `award`.
+ */
+export function validateTicketCount(input: string, cap: number): CountCheck {
+  const trimmed = input.trim();
+  if (trimmed === '') {
+    return { ok: false, message: 'Enter how many attendees will claim.' };
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return { ok: false, message: 'A ticket count is a whole number.' };
+  }
+  const value = Number(trimmed);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    return { ok: false, message: 'Generate at least one ticket.' };
+  }
+  if (value > cap) {
+    return { ok: false, message: 'The badge cap must be at least the number of tickets.' };
   }
   return { ok: true, value };
 }

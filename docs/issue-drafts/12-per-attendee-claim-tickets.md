@@ -1,7 +1,21 @@
 # Build one claim code per attendee and hand out tickets
 
+**Status:** implemented 2026-10-05 — kept for the design, not as open work
 **Difficulty:** hard
 **Labels:** help wanted, area:app
+
+> **What landed.** The create screen asks how many attendees will claim
+> (`Tickets to generate`, default 1), generates that many codes, hashes each
+> locally, builds the Merkle tree in `src/lib/merkle.ts` (sorted pairs, odd
+> levels closed by hashing the last node with itself), and sends only the root.
+> The success screen lists one paste-able ticket per attendee — `code` for a
+> one-attendee event, `code:proof` otherwise — shown once and kept nowhere.
+> The claim screen accepts a whole ticket in its first field, and keeps the
+> separate proof field for organizers who share the code and proof apart.
+> Trees and proofs are pinned against fixed vectors computed with .NET's
+> SHA-256 and against an independently written reference in
+> `src/test/merkleReference.ts`. Still open: QR tickets and scanning (drafts 01
+> and 02) and any delivery aid beyond copying text.
 
 ## Problem
 

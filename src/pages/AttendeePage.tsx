@@ -12,7 +12,7 @@ import {
   hashClaimCode,
   hexToBytes,
   parseClaimProof,
-  validateClaimCode,
+  parseClaimTicket,
 } from '../lib/claimCode';
 import type { SubmitResult } from '../lib/contract';
 import { runWrite } from '../lib/flow';
@@ -57,19 +57,26 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     if (!acknowledged) return;
 
     const idCheck = validateEventId(eventId);
-    const codeCheck = validateClaimCode(claimCode);
-    const proofCheck = parseClaimProof(claimProof);
+    const ticket = parseClaimTicket(claimCode);
+    // A ticket brings its own proof; the separate field is for codes and
+    // proofs shared apart. A bare code needs no proof only for a one-attendee
+    // event, where the root is the leaf.
+    const ticketHasProof = ticket.ok && ticket.proofText !== '';
+    const proofCheck = parseClaimProof(ticketHasProof ? ticket.proofText : claimProof);
+    // A malformed proof inside a pasted ticket belongs to the ticket field, the
+    // one the attendee actually typed in.
+    const ticketProofError = ticketHasProof && !proofCheck.ok ? proofCheck.message : null;
 
     setFieldErrors({
       claimEvent: idCheck.ok ? null : idCheck.message,
-      claimCode: codeCheck.ok ? null : codeCheck.message,
-      claimProof: proofCheck.ok ? null : proofCheck.message,
+      claimCode: ticket.ok ? ticketProofError : ticket.message,
+      claimProof: ticketHasProof || proofCheck.ok ? null : proofCheck.message,
     });
-    if (!idCheck.ok || !codeCheck.ok || !proofCheck.ok) return;
+    if (!idCheck.ok || !ticket.ok || !proofCheck.ok) return;
 
     // The contract takes the code's leaf and proof, not the code: hashing here
     // keeps the raw secret on this device and out of the transaction.
-    const hashed = await hashClaimCode(codeCheck.code);
+    const hashed = await hashClaimCode(ticket.code);
     if (!hashed.ok) {
       setFieldErrors((prev) => ({ ...prev, claimCode: hashed.message }));
       return;
@@ -89,6 +96,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
 
     if (result !== undefined) {
       setClaimCode('');
+      setClaimProof('');
       // Refresh the badge list for this event once the claim is in.
       await loadBadges(address, idCheck.value);
     }
@@ -126,9 +134,9 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     <section>
       <h1>Claim your badge</h1>
       <p>
-        Enter the event id, the claim code the organizer gave you, and the proof that came with it.
-        The code is hashed here in your browser; the hash and the proof go to the contract, and the
-        code itself is never published.
+        Enter the event id, then paste the ticket the organizer gave you — the claim code, and the
+        proof that belongs to it. The code is hashed here in your browser; the hash and the proof
+        go to the contract, and the code itself is never published.
       </p>
 
       <fieldset disabled={busy}>
@@ -147,13 +155,13 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
 
         <Field
           id="claimCode"
-          label="Claim code (64 hex characters)"
+          label="Claim code or ticket"
           value={claimCode}
           onChange={setClaimCode}
           placeholder="64 hexadecimal characters"
           mono
           required
-          hint="Exactly as the organizer shared it. If it does not work, check it character by character — codes are long on purpose."
+          hint="Paste the ticket the organizer gave you — the code alone, or the code with : and its proof. If it does not work, check it character by character — codes are long on purpose."
           error={fieldErrors.claimCode}
         />
 
@@ -164,7 +172,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           onChange={setClaimProof}
           placeholder="64-character hashes, separated by spaces"
           mono
-          hint="The organizer's proof that your code belongs to this event, one hash per line. Leave it empty only if the event has a single attendee."
+          hint="Only if your organizer shared the proof apart from the code — a pasted ticket brings its own. Leave it empty only if the event has a single attendee."
           error={fieldErrors.claimProof}
         />
 

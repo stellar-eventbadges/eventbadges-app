@@ -78,7 +78,7 @@ describe('<AttendeePage />', () => {
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), 'abc');
+    await user.type(view.getByLabelText('Claim code or ticket'), 'abc');
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
@@ -96,7 +96,7 @@ describe('<AttendeePage />', () => {
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
@@ -115,7 +115,7 @@ describe('<AttendeePage />', () => {
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
@@ -140,7 +140,7 @@ describe('<AttendeePage />', () => {
     const sibling = 'cd'.repeat(32);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await user.type(view.getByLabelText('Claim proof (optional)'), sibling);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
@@ -157,8 +157,61 @@ describe('<AttendeePage />', () => {
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await user.type(view.getByLabelText('Claim proof (optional)'), 'not-a-hash');
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(await view.findByText(/64-character hexadecimal hash/)).not.toBeNull();
+    expect(client.preparedClaims).toHaveLength(0);
+  });
+
+  it('accepts a whole ticket in the code field, proof and all', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const wallet = walletFactory({ address });
+    const client = clientFactory([eventFactory()], [badgeFactory({ eventId: 1n, attendee: address })]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
+    const sibling = 'cd'.repeat(32);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code or ticket'), `${CODE}:${sibling}`);
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(client.preparedClaims).toHaveLength(1);
+    expect(bytesToHex(client.preparedClaims[0].leafHash)).toBe(
+      createHash('sha256').update(Buffer.from(CODE, 'hex')).digest('hex'),
+    );
+    expect(client.preparedClaims[0].proof.map(bytesToHex)).toEqual([sibling]);
+  });
+
+  it('prefers a ticket’s own proof over the proof field when both are filled', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const wallet = walletFactory({ address });
+    const client = clientFactory([eventFactory()], [badgeFactory({ eventId: 1n, attendee: address })]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client, wallet })} />);
+    const ticketProof = 'cd'.repeat(32);
+    const staleProof = 'ef'.repeat(32);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code or ticket'), `${CODE}:${ticketProof}`);
+    await user.type(view.getByLabelText('Claim proof (optional)'), staleProof);
+    await acknowledge(user, view);
+    await user.click(view.getByRole('button', { name: 'Claim my badge' }));
+
+    expect(client.preparedClaims).toHaveLength(1);
+    expect(client.preparedClaims[0].proof.map(bytesToHex)).toEqual([ticketProof]);
+  });
+
+  it('refuses a ticket with a malformed proof before building a transaction', async () => {
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory()]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Claim code or ticket'), `${CODE}:not-a-hash`);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
@@ -173,7 +226,7 @@ describe('<AttendeePage />', () => {
     const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
 
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
 
@@ -226,7 +279,7 @@ describe('<AttendeePage />', () => {
 
     // A fully valid claim, refused because the notice was not acknowledged.
     await user.type(view.getByLabelText('Event id'), '1');
-    await user.type(view.getByLabelText('Claim code (64 hex characters)'), CODE);
+    await user.type(view.getByLabelText('Claim code or ticket'), CODE);
     await user.click(button);
     expect(submit).not.toHaveBeenCalled();
 

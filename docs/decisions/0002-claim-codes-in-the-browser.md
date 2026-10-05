@@ -5,6 +5,12 @@
 - **Date:** 2026-10-03
 - **Deciders:** maintainer (solo builder)
 
+> **Update, 2026-10-05.** The create screen now generates one code per
+> attendee and builds the Merkle tree over their leaves in the browser
+> (`src/lib/merkle.ts`); only the root enters `create_event`. The rest of this
+> decision — generate with the Web Crypto API, hash locally before any
+> transaction, show once, store nothing — stands unchanged.
+
 ## Context
 
 `create_event` commits the attendees' claim codes as a Merkle root — only

@@ -145,10 +145,13 @@ export function clientFactory(
 ): ContractClient & {
   failNextReadWith: (error: unknown) => void;
   failNextWriteWith: (error: unknown) => void;
+  /** Every `create_event` the page prepared, so tests can assert on the root. */
+  preparedCreates: Parameters<ContractClient['prepareCreateEvent']>[0][];
   /** Every `claim` the page prepared, so tests can assert on the arguments. */
   preparedClaims: Parameters<ContractClient['prepareClaim']>[0][];
 } {
   const eventById = new Map(events.map((event) => [event.id, event]));
+  const preparedCreates: Parameters<ContractClient['prepareCreateEvent']>[0][] = [];
   const preparedClaims: Parameters<ContractClient['prepareClaim']>[0][] = [];
   let readFailure: unknown = null;
   let writeFailure: unknown = null;
@@ -187,8 +190,9 @@ export function clientFactory(
       throwRead();
       return badges.filter((badge) => badge.eventId === eventId && badge.attendee === attendee);
     },
-    async prepareCreateEvent() {
+    async prepareCreateEvent(input) {
       throwRead();
+      preparedCreates.push(input);
       return { xdr: 'fake-xdr' };
     },
     async prepareClaim(input) {
@@ -205,6 +209,7 @@ export function clientFactory(
       return { xdr: 'fake-xdr' };
     },
     submit,
+    preparedCreates,
     preparedClaims,
     failNextReadWith(error: unknown) {
       readFailure = error;

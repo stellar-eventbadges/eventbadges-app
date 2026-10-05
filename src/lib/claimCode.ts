@@ -123,6 +123,39 @@ export function parseClaimProof(input: string): ProofCheck {
   return { ok: true, value };
 }
 
+export type TicketCheck =
+  | { readonly ok: true; readonly code: string; readonly proofText: string }
+  | { readonly ok: false; readonly message: string };
+
+/**
+ * Splits the organizer's ticket into its code and its proof text: `code` alone
+ * for a one-attendee event, or `code:proof hashes` — or `code proof hashes`,
+ * since the proof is already whitespace-separated. The code is validated here;
+ * the proof text is validated by `parseClaimProof` where it is used.
+ */
+export function parseClaimTicket(input: string): TicketCheck {
+  const trimmed = input.trim();
+  const colon = trimmed.indexOf(':');
+  if (colon !== -1) {
+    const codeCheck = validateClaimCode(trimmed.slice(0, colon));
+    if (!codeCheck.ok) return codeCheck;
+    return { ok: true, code: codeCheck.code, proofText: trimmed.slice(colon + 1).trim() };
+  }
+
+  const parts = trimmed.split(/\s+/);
+  const codeCheck = validateClaimCode(parts[0]);
+  if (!codeCheck.ok) return codeCheck;
+  return { ok: true, code: codeCheck.code, proofText: parts.slice(1).join(' ') };
+}
+
+/**
+ * One ticket in the paste-able form `parseClaimTicket` reads back: the code
+ * alone when the proof is empty (a one-attendee event), `code:proof` otherwise.
+ */
+export function formatTicket(code: string, proofHex: readonly string[]): string {
+  return proofHex.length === 0 ? code : `${code}:${proofHex.join(' ')}`;
+}
+
 /** Formats a stored 32-byte hash as shortened hex: `0x1234abcd…`. */
 export function formatHashHex(bytes: Uint8Array, edge = 8): string {
   const hex = bytesToHex(bytes);

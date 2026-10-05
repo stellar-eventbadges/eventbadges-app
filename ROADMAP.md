@@ -29,8 +29,8 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 
 ## v0 screens (from playbook section 9) — built
 
-- Organizer: create an event, show a claim code (QR is draft 01), see the
-  claim count, award and revoke.
+- Organizer: create an event, generate one ticket per attendee and show them
+  once (QR is draft 01), see the claim count, award and revoke.
 - Attendee: enter a code (scanning is draft 02), claim, see badges.
 - Public: verify that an address holds a badge for an event, no wallet needed.
 

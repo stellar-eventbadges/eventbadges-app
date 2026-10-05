@@ -6,26 +6,35 @@ import { EventSummary } from '../components/EventSummary';
 import { Field } from '../components/Field';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
-import { canIssue, type EventRecord } from '../lib/badge';
+import { canIssue, MAX_CLAIMS_PER_EVENT, type EventRecord } from '../lib/badge';
 import type { SubmitResult } from '../lib/contract';
 import { defaultClosesAt, unixSecondsFromLocalInput } from '../lib/datetime';
 import { runWrite } from '../lib/flow';
 import {
   browserRandomBytes,
+  bytesToHex,
+  formatTicket,
   generateClaimCode,
   hashClaimCode,
   hexToBytes,
   validateClaimCode,
 } from '../lib/claimCode';
+import { buildMerkleTree } from '../lib/merkle';
 import { scValToEventId } from '../lib/scval';
-import { validateAccountAddress, validateEventId, validateMaxClaims } from '../lib/validation';
+import {
+  validateAccountAddress,
+  validateEventId,
+  validateMaxClaims,
+  validateTicketCount,
+} from '../lib/validation';
 import type { PageProps } from './shared';
 
 interface CreatedEvent {
   readonly result: SubmitResult;
   readonly eventId: bigint | null;
-  readonly code: string;
-  readonly hashHex: string;
+  readonly rootHex: string;
+  /** One paste-able ticket per attendee, shown once and never stored. */
+  readonly tickets: readonly string[];
 }
 
 /**
@@ -37,6 +46,7 @@ interface CreatedEvent {
 export function OrganizerPage({ client, config, wallet }: PageProps) {
   const [nameHashHex, setNameHashHex] = useState('');
   const [maxClaims, setMaxClaims] = useState('');
+  const [ticketCount, setTicketCount] = useState('1');
   const [closesAt, setClosesAt] = useState(defaultClosesAt());
   const [manageId, setManageId] = useState('');
   const [awardAttendee, setAwardAttendee] = useState('');
@@ -83,6 +93,10 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
     // validateClaimCode is the 32-byte hex check.
     const nameHashCheck = validateClaimCode(nameHashHex);
     const capCheck = validateMaxClaims(maxClaims);
+    const countCheck = validateTicketCount(
+      ticketCount,
+      capCheck.ok ? capCheck.value : MAX_CLAIMS_PER_EVENT,
+    );
 
     const closesSeconds = unixSecondsFromLocalInput(closesAt);
     const nowSeconds = Math.floor(Date.now() / 1000);
@@ -97,27 +111,48 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
     const nextErrors: Record<string, string | null> = {
       nameHash: nameHashCheck.ok ? null : nameHashCheck.message,
       maxClaims: capCheck.ok ? null : capCheck.message,
+      ticketCount: countCheck.ok ? null : countCheck.message,
       closesAt: closesError,
     };
     setFieldErrors(nextErrors);
 
-    if (!nameHashCheck.ok || !capCheck.ok || closesSeconds === null || closesError !== null) {
+    if (
+      !nameHashCheck.ok ||
+      !capCheck.ok ||
+      !countCheck.ok ||
+      closesSeconds === null ||
+      closesError !== null
+    ) {
       return;
     }
 
-    // The claim code is generated here, hashed here, and shown once. Nothing
-    // but the hash goes into the transaction; the code never leaves the page
-    // except through the organizer's own sharing.
-    const generated = generateClaimCode(browserRandomBytes);
-    if (!generated.ok) {
-      setFieldErrors((prev) => ({ ...prev, nameHash: generated.message }));
-      return;
+    // One code per attendee, each hashed here, then committed as a Merkle
+    // root. Nothing but the root goes into the transaction; the codes and
+    // their proofs are shown once and never leave the page except through the
+    // organizer's own sharing.
+    const codes: string[] = [];
+    const leaves: Uint8Array<ArrayBuffer>[] = [];
+    for (let index = 0; index < countCheck.value; index += 1) {
+      const generated = generateClaimCode(browserRandomBytes);
+      if (!generated.ok) {
+        setFieldErrors((prev) => ({ ...prev, nameHash: generated.message }));
+        return;
+      }
+      const hashed = await hashClaimCode(generated.code);
+      if (!hashed.ok) {
+        setFieldErrors((prev) => ({ ...prev, nameHash: hashed.message }));
+        return;
+      }
+      codes.push(generated.code);
+      leaves.push(hexToBytes(hashed.hashHex));
     }
-    const hashed = await hashClaimCode(generated.code);
-    if (!hashed.ok) {
-      setFieldErrors((prev) => ({ ...prev, nameHash: hashed.message }));
-      return;
-    }
+    const tree = await buildMerkleTree(leaves);
+    const tickets = codes.map((code, index) =>
+      formatTicket(
+        code,
+        tree.proofs[index].map((node) => bytesToHex(node)),
+      ),
+    );
 
     const created = await createAction.run(async () => {
       const submit = await runWrite(client, address, config.passphrase, () =>
@@ -125,7 +160,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
           source: address,
           organizer: address,
           nameHash: hexToBytes(nameHashCheck.code),
-          claimRoot: hexToBytes(hashed.hashHex),
+          claimRoot: tree.root,
           maxClaims: capCheck.value,
           closesAt: BigInt(closesSeconds),
         }),
@@ -133,8 +168,8 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
       return {
         result: submit,
         eventId: submit.returnValue === undefined ? null : scValToEventId(submit.returnValue),
-        code: generated.code,
-        hashHex: hashed.hashHex,
+        rootHex: bytesToHex(tree.root),
+        tickets,
       };
     });
 
@@ -224,8 +259,20 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
           inputMode="numeric"
           placeholder="100"
           required
-          hint="Between 1 and 10,000. This is the total number of badges the event can ever issue."
+          hint="Between 1 and 10,000. This is the total number of badges the event can ever issue, by claim and by award."
           error={fieldErrors.maxClaims}
+        />
+
+        <Field
+          id="ticketCount"
+          label="Tickets to generate"
+          value={ticketCount}
+          onChange={setTicketCount}
+          inputMode="numeric"
+          placeholder="1"
+          required
+          hint="One single-use claim code per attendee, each with its own proof. The badge cap must be at least this many."
+          error={fieldErrors.ticketCount}
         />
 
         <Field
@@ -257,22 +304,36 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
                   Event #{createAction.result.eventId.toString()} created
                 </p>
                 <p>
-                  The claim code below was generated in your browser and is shown{' '}
-                  <strong>once</strong>. Its SHA-256 is what the contract stores. Share the code
-                  with attendees out-of-band (in person, or a channel you trust) — never by posting
-                  it where strangers can read it.
+                  {createAction.result.tickets.length === 1 ? (
+                    <>
+                      The ticket below was generated in your browser and is shown{' '}
+                      <strong>once</strong>.
+                    </>
+                  ) : (
+                    <>
+                      The {createAction.result.tickets.length} tickets below were generated in
+                      your browser and are shown <strong>once</strong>.
+                    </>
+                  )}{' '}
+                  Each is one attendee&rsquo;s single-use claim code with the proof that belongs to
+                  it. Give each attendee their own, out-of-band (in person, or a channel you
+                  trust) — never by posting it where strangers can read it.
                 </p>
-                <p className="mono" aria-live="polite">
-                  <span className="hint">Claim code: </span>
-                  {createAction.result.code}
-                </p>
+                <ul aria-label="Claim tickets">
+                  {createAction.result.tickets.map((ticket, index) => (
+                    <li className="mono" key={ticket}>
+                      <span className="hint">Attendee {index + 1}: </span>
+                      {ticket}
+                    </li>
+                  ))}
+                </ul>
                 <p className="mono">
-                  <span className="hint">Code hash (on-chain): </span>
-                  {createAction.result.hashHex}
+                  <span className="hint">Merkle root (on-chain): </span>
+                  {createAction.result.rootHex}
                 </p>
                 <p className="hint">
-                  There is no way to recover this code later — the chain only has the hash. If you
-                  lose it, award badges directly instead.
+                  There is no way to recover a ticket later — the chain only holds the Merkle
+                  root. If you lose them, award badges directly instead.
                 </p>
               </div>
             )}
