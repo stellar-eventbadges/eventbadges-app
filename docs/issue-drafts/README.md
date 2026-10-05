@@ -12,8 +12,8 @@ becomes an issue.
 | [03 — Badge artwork](03-badge-artwork.md) | app | medium |
 | [04 — Share-to-social card for a verified badge](04-share-to-social-card.md) | app | medium |
 | [05 — CSV export of an event's badges (opt-in)](05-csv-export-opt-in.md) | app | medium |
-| [06 — Decide what to do about the wallet kit's dependency advisories](06-wallet-kit-dependency-advisories.md) | app | medium |
-| [07 — Code-split the wallet kit out of the initial bundle](07-code-split-wallet-kit.md) | app | medium |
+| [06 — Decide what to do about the wallet kit's dependency advisories](06-wallet-kit-dependency-advisories.md) | app | medium — **decided 2026-10-05: option C** |
+| [07 — Code-split the wallet kit out of the initial bundle](07-code-split-wallet-kit.md) | app | medium — **implemented 2026-10-05** |
 | [08 — End-to-end tests against testnet](08-end-to-end-tests-against-testnet.md) | ci | medium |
 | [09 — Restore an archived event record](09-restore-archived-records.md) | app | hard |
 | [10 — Claiming on a phone: the mobile wallet story is untested](10-claiming-on-a-phone.md) | app | medium |

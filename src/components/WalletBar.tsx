@@ -12,7 +12,15 @@ export function WalletBar({ wallet }: { wallet: WalletController }) {
   return (
     <div className="wallet-bar">
       {wallet.address === null ? (
-        <button type="button" onClick={() => void wallet.connect()} disabled={wallet.connecting}>
+        <button
+          type="button"
+          onClick={() => void wallet.connect()}
+          // Start fetching the wallet kit's chunk while the pointer is on the
+          // way, so the picker still opens without a wait on a slow link.
+          onPointerEnter={wallet.prepare}
+          onFocus={wallet.prepare}
+          disabled={wallet.connecting}
+        >
           {wallet.connecting ? 'Connecting…' : 'Connect wallet'}
         </button>
       ) : (

@@ -22,10 +22,17 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       an explicit acknowledgement (2026-10-03, draft 11). Short notice plus an
       in-place full version, copy in `src/lib/privacyNotice.ts`, axe-checked.
       **Never shown to a person** — see the README's proven-vs-assumed.
+- [x] Wallet kit off the first paint, loaded only for the eight Stellar
+      wallets the app offers (2026-10-05, drafts 07 and 06 option C): initial
+      chunk 1,058.76 kB / 267.30 kB gzip → 809.82 kB / 191.97 kB gzip, and the
+      kit's multi-chain modules (`MetaMask`, `Ledger`, `Trezor`,
+      `WalletConnect`/Reown and their NEAR/Solana tree) are in no built chunk.
+      `npm audit` still reports 19 advisories — the packages remain installed,
+      they are simply no longer shipped. Picker opened in a browser; **no real
+      wallet has connected or signed**.
 - [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
       by what the first pilot actually needs: the QR claim code (01), mobile
-      wallet story (10), code-split (07), advisory decision (06), and the
-      rest.
+      wallet story (10), and the rest.
 
 ## v0 screens (from playbook section 9) — built
 
@@ -43,8 +50,13 @@ of archived records (09).
 1. **Build standard — decided (2026-10-02).** v3 sections 4 and 9 are the
    scope authority for what the app shows; v4 plus the schoolfees repos are
    the standard for how it is built (doc set, AGENTS.md, CI, checkers).
-2. **Wallet kit advisories — drafted, not decided (2026-10-03).** Accept and
-   document, pin, or narrow further: draft 06.
+2. **Wallet kit advisories — decided 2026-10-05 (option C, draft 06).** The
+   app imports the eight Stellar modules by their own entry points, so the
+   flagged multi-chain tree is no longer bundled; the packages stay installed
+   and `npm audit` keeps reporting them. What is *not* decided: whether the
+   audit noise is acceptable at pilot time, and whether the returning-session
+   load should be deferred so the kit's chunks are not fetched by visitors who
+   never touch a wallet (draft 07 records the trade-off).
 
 ### Legal review of the on-chain privacy model — needed before any pilot with real attendees
 

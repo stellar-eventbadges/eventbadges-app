@@ -1,7 +1,40 @@
 # Decide what to do about the wallet kit's dependency advisories
 
+**Status:** decided 2026-10-05, option C — kept for the reasoning, not as open work
 **Difficulty:** medium
 **Labels:** help wanted, area:app
+
+> **Decision: C — narrow the kit's module set so the multi-chain tree is never bundled.**
+> `src/lib/wallet.ts` now imports the eight Stellar module entry points
+> (`.../modules/{albedo,freighter,fordefi,rabet,xbull,lobstr,hana,scopuly}`)
+> instead of calling the kit's `defaultModules()`, so `MetaMask`, `Ledger`,
+> `Trezor`, `WalletConnect`/Reown, `OneKey`, `Bitget`, `Dcent`, `Klever`,
+> `CactusLink`, `Ghostsig` and their NEAR/Solana transitive trees are never
+> parsed, never offered in the picker, and not in any built chunk. Checked
+> against the built `dist/`: no `metamask`, `relay.walletconnect.com`,
+> `@ledgerhq`/`trezor`, `jayson`/`stream-json`/`solana` markers in any chunk.
+> The same change is draft 07, which is where the size numbers live.
+>
+> **What this does not change.** The packages are still *installed*: they arrive
+> as regular dependencies of the kit, so `npm audit` is unchanged and still
+> reports **19 vulnerabilities (12 low, 7 moderate)** as of 2026-10-05 (same
+> count on `--omit=dev`). `npm audit` reads the dependency tree, not the
+> bundle, so the number will stay until either the kit drops the modules
+> upstream or the project takes a breaking downgrade. `npm audit fix --force`
+> (kit 1.5.0) is **still not applied and still not planned without review.**
+>
+> **Residual risk, deliberately written down.** The guard is the import
+> allow-list, and it is a convention, not a mechanism: one future `import` from
+> the kit root or of another module re-bundles the tree, and the audit number
+> would then describe shipped code again. A test cannot see this (it is a build
+> artefact question) — the cheap check is the `dist/` grep recorded above,
+> repeated whenever the wallet adapter changes.
+>
+> **Alternatives rejected.** A (accept and document) ships ~1 MB of unreachable
+> multi-chain code to every visitor and keeps the flagged tree on the critical
+> path — the weakest option once C turned out to be possible without changing
+> the picker. B (pin/override) has no honest version here: the only offered fix
+> is the breaking downgrade the existing text already refuses.
 
 ## Problem
 
@@ -28,9 +61,12 @@ Two things make this more than a version bump:
    one dependency that makes the app work at all. It was **not** applied, and
    it never will be without review.
 2. **The flagged code is multi-chain** (NEAR and Solana) and a Stellar-only app
-   most likely never executes it, but it **is** bundled — the initial chunk is
-   ~1 MB, most of it this tree. "Probably not reachable" is a judgement, not a
-   proof, and it belongs in writing.
+   most likely never executes it. When this draft was written it **was**
+   bundled — the initial chunk was ~1 MB, most of it this tree. Since the
+   2026-10-05 decision (C) it is in no built chunk; the packages are still
+   installed, so `npm audit` still counts them. "Probably not reachable" is a
+   judgement, not a proof, and it belongs in writing — which is what the
+   decision block above does.
 
 This mirrors the same decision in `schoolfees-app` (draft 17 there), where the
 Stellar-only module filter already removed most of the flagged tree at runtime.
@@ -56,10 +92,10 @@ without saying so; and any change to the contract.
 
 ## Acceptance criteria
 
-- [ ] Each advisory is recorded with its package, the advisory link, and whether this app can reach the vulnerable code.
-- [ ] A decision (A, B or C) is stated with its reasoning, and the alternative it rejected.
-- [ ] Whichever option is chosen, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass, and the connect flow still opens the wallet picker (recorded honestly, including that no real wallet has signed yet).
-- [ ] The `npm audit` numbers in this draft are refreshed at the time of the decision.
+- [x] Each advisory is recorded with its package, the advisory link, and whether this app can reach the vulnerable code. — recorded above with the decision: as of 2026-10-05 the code is not bundled, so the app cannot reach it at runtime; the packages remain installed.
+- [x] A decision (A, B or C) is stated with its reasoning, and the alternative it rejected. — C, with A and B rejected above.
+- [x] Whichever option is chosen, `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass, and the connect flow still opens the wallet picker (recorded honestly, including that no real wallet has signed yet). — lint 0/0, typecheck clean, 185 tests / 26 files, build OK; the picker was opened in a browser and lists exactly the eight offered wallets. No real wallet has signed.
+- [x] The `npm audit` numbers in this draft are refreshed at the time of the decision. — 19 vulnerabilities (12 low, 7 moderate), 2026-10-05, unchanged before and after the change.
 
 ## Where to start
 

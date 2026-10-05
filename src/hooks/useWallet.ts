@@ -5,6 +5,7 @@ import {
   connectWallet,
   disconnectWallet,
   initWallet,
+  prefetchWallet,
   rememberedAddress,
 } from '../lib/wallet';
 
@@ -14,6 +15,12 @@ export interface WalletController {
   readonly error: string | null;
   /** null until the wallet has been asked; false blocks every write. */
   readonly onTestnet: boolean | null;
+  /**
+   * Warms the wallet kit's chunk before a connect is asked for. Called from the
+   * connect button's hover and focus handlers; must never be required for the
+   * connect path itself to work.
+   */
+  prepare: () => void;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   refreshNetwork: () => Promise<boolean>;
@@ -47,7 +54,7 @@ export function useWallet(): WalletController {
   // On load, remember an address the wallet already authorised and re-check the
   // network, so a returning session cannot silently be on the wrong chain.
   useEffect(() => {
-    initWallet();
+    void initWallet();
     void (async () => {
       const existing = await rememberedAddress();
       if (existing !== null) {
@@ -56,6 +63,10 @@ export function useWallet(): WalletController {
       }
     })();
   }, [refreshNetwork]);
+
+  const prepare = useCallback(() => {
+    void prefetchWallet();
+  }, []);
 
   const connect = useCallback(async () => {
     setConnecting(true);
@@ -82,5 +93,5 @@ export function useWallet(): WalletController {
     setOnTestnet(null);
   }, []);
 
-  return { address, connecting, error, onTestnet, connect, disconnect, refreshNetwork };
+  return { address, connecting, error, onTestnet, prepare, connect, disconnect, refreshNetwork };
 }

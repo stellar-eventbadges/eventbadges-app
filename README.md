@@ -106,14 +106,16 @@ All four run in CI ([.github/workflows/web.yml](.github/workflows/web.yml)).
 │   │   ├── contractErrors.ts  # error code -> ERRORS.md wording
 │   │   ├── scval.ts       #   JS <-> xdr.ScVal conversions
 │   │   ├── contract.ts    #   the Soroban client (build/simulate/submit)
-│   │   ├── wallet.ts      #   Stellar Wallets Kit adapter
+│   │   ├── wallet.ts      #   Stellar Wallets Kit adapter (eight Stellar
+│   │   │                  #     modules, imported by entry point)
 │   │   ├── flow.ts        #   the one write path (network gate, sign, submit)
 │   │   └── explorer.ts    #   explorer links
 │   ├── hooks/             # useWallet, useAction
 │   ├── components/        # UI only
 │   └── pages/             # one per flow
 ├── docs/
-│   ├── decisions/         # ADRs: contract binding, in-browser claim codes
+│   ├── decisions/         # ADRs: contract binding, in-browser claim
+│   │                      #   codes, wallet modules by entry point
 │   ├── issue-drafts/      # everything not built, as drafts
 │   └── contract-errors.md # vendored copy of ERRORS.md, used by the tests
 └── scripts/deploy-testnet.sh   # written, never run by an agent
@@ -161,9 +163,11 @@ Read this before trusting the app with anything.
   flow and the ABI in `src/lib.rs`, but that is review, not proof. Draft 08 is
   the plan to change this.
 - **Every wallet interaction.** No wallet has ever signed anything through this
-  app. The kit's picker is filtered to eight Stellar wallets with local icons,
-  but connect, sign and the network re-read have not been run. The mobile
-  story in particular is untested (draft 10).
+  app. The kit's picker offers exactly eight Stellar wallets, each imported by
+  its own entry point and drawn from a local icon (`src/lib/wallet.ts`), and
+  opening that picker is the one part of this list that *has* been seen in a
+  browser — but connect, sign and the network re-read have not been run. The
+  mobile story in particular is untested (draft 10).
 - **The privacy notice has never been read by anyone.** It is unit-tested,
   render-tested and axe-checked, and it is the honest account of what the
   contract does — but it has not been shown to a person, let alone a lawyer,
@@ -174,7 +178,10 @@ Read this before trusting the app with anything.
   real money — it is not, and it does not handle real money.
 - `npm audit` reports 19 advisories (12 low, 7 moderate), all transitive through
   the wallet kit's multi-chain modules; the only offered fix is a breaking
-  downgrade and was not applied. Draft 06 records the decision to make.
+  downgrade and was not applied. The app no longer imports or bundles those
+  modules (draft 06, decision C, 2026-10-05), so the advisories describe
+  installed code the app cannot reach — the packages are still in the tree, and
+  a single future import from the kit's root would put them back in a chunk.
 
 ## Contract deployment
 

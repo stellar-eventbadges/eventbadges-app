@@ -114,6 +114,7 @@ export function walletFactory(overrides: Partial<WalletController> = {}): Wallet
     connecting: false,
     error: null,
     onTestnet: true,
+    prepare: () => {},
     connect: async () => {},
     disconnect: async () => {},
     refreshNetwork: async () => true,
