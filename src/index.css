@@ -415,6 +415,36 @@ legend {
   fill: var(--accent-strong);
 }
 
+/* The claim code as a QR symbol. Unlike the badge mark, this is not decoration:
+   a scanner has to read it, so the modules are a fixed black on a white quiet
+   zone rather than the accent palette. The width is a sensible on-screen size
+   for a phone to focus on, and it shrinks to fit a narrow column. */
+.qr-code {
+  display: block;
+  width: 12rem;
+  max-width: 100%;
+  height: auto;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+.qr-code-quiet {
+  fill: #ffffff;
+}
+.qr-code-dark {
+  fill: #000000;
+}
+
+/* Each claim ticket is the code, then its QR. Give the pair room and the
+   symbol a little space below the text it mirrors. */
+.ticket-list li {
+  margin-block: 0.85rem;
+}
+.ticket-list .qr-code {
+  margin-top: 0.6rem;
+}
+
 .notice {
   border: 1px solid var(--line);
   border-left: 6px solid var(--line-strong);

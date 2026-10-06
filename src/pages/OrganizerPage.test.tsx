@@ -22,6 +22,7 @@ vi.mock('../lib/wallet', () => ({
 
 import {
   clientFactory,
+  decodeRenderedQr,
   eventFactory,
   fakeAccount,
   pagePropsFactory,
@@ -112,6 +113,28 @@ describe('<OrganizerPage />', () => {
     const manageId = view.getAllByLabelText('Event id')[0] as HTMLInputElement;
     expect(manageId.value).toBe('5');
     expect(await view.findByText('Badges issued')).not.toBeNull();
+  });
+
+  it('shows the claim ticket as a QR that decodes, on screen, to that ticket', async () => {
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory({ id: 6n })]);
+    client.submit = async () => ({ hash: 'd'.repeat(64), returnValue: u64ToScVal(6n) });
+    const view = renderOnly(<OrganizerPage {...pagePropsFactory({ client })} />);
+
+    await user.type(view.getByLabelText('Event name hash (64 hex characters)'), NAME_HASH);
+    await user.type(view.getByLabelText('Badge cap'), '50');
+    await user.click(view.getByRole('button', { name: 'Create the event' }));
+
+    const list = await view.findByRole('list', { name: 'Claim tickets' });
+    const items = within(list).getAllByRole('listitem');
+    const ticket = ticketText(items[0]);
+
+    // The QR is an image with an accessible name...
+    expect(
+      within(items[0]).getByRole('img', { name: "QR code of attendee 1's claim ticket" }),
+    ).not.toBeNull();
+    // ...and what it renders decodes back to exactly the ticket text beside it.
+    expect(decodeRenderedQr(items[0])).toBe(ticket);
   });
 
   it('builds one ticket per attendee whose proofs fold into the committed root', async () => {

@@ -7,6 +7,7 @@ import type { ReactElement } from 'react';
 
 import type { BadgeRecord, EventRecord } from '../lib/badge';
 import type { ContractClient, SubmitResult } from '../lib/contract';
+import { QR_QUIET_ZONE, qrDecode } from '../lib/qr';
 import type { WalletController } from '../hooks/useWallet';
 import type { AppConfig } from '../lib/network';
 import type { PageProps } from '../pages/shared';
@@ -60,6 +61,34 @@ export function renderOnly(ui: ReactElement): RenderResult {
  */
 export function textOf(container: HTMLElement): string {
   return container.textContent ?? '';
+}
+
+/**
+ * Rebuilds the module matrix from a rendered `<QrCode />` SVG — the viewBox and
+ * the path — and decodes it. Tests use this to assert on the artifact on the
+ * screen, so a dropped, moved or flipped module fails the decode rather than
+ * only a unit test of the encoder behind it.
+ */
+export function decodeRenderedQr(container: HTMLElement): string {
+  const svg = container.querySelector('svg.qr-code') as SVGSVGElement | null;
+  if (svg === null) throw new Error('no rendered QR code found');
+
+  const extent = Number((svg.getAttribute('viewBox') ?? '').split(/\s+/)[2]);
+  const size = extent - QR_QUIET_ZONE * 2;
+  const modules = Array.from({ length: size }, () => new Array<boolean>(size).fill(false));
+
+  const data = svg.querySelector('path')?.getAttribute('d') ?? '';
+  const runPattern = /M(\d+) (\d+)h(\d+)v1h-\d+z/g;
+  let match = runPattern.exec(data);
+  while (match !== null) {
+    const x = Number(match[1]) - QR_QUIET_ZONE;
+    const y = Number(match[2]) - QR_QUIET_ZONE;
+    const width = Number(match[3]);
+    for (let i = 0; i < width; i += 1) modules[y][x + i] = true;
+    match = runPattern.exec(data);
+  }
+
+  return qrDecode({ size, modules });
 }
 
 /**

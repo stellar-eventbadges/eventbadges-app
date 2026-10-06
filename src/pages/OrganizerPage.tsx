@@ -4,6 +4,7 @@ import { ConnectPrompt } from '../components/ConnectPrompt';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { EventSummary } from '../components/EventSummary';
 import { Field } from '../components/Field';
+import { QrCode } from '../components/QrCode';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
 import { canIssue, MAX_CLAIMS_PER_EVENT, type EventRecord } from '../lib/badge';
@@ -319,11 +320,22 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
                   it. Give each attendee their own, out-of-band (in person, or a channel you
                   trust) — never by posting it where strangers can read it.
                 </p>
-                <ul aria-label="Claim tickets">
+                <p className="hint">
+                  Each ticket below has a QR code beside it, built in this browser. An attendee can
+                  scan it with their phone camera instead of typing the code by hand; anyone
+                  without a camera can still copy the text.
+                </p>
+                <ul aria-label="Claim tickets" className="ticket-list">
                   {createAction.result.tickets.map((ticket, index) => (
-                    <li className="mono" key={ticket}>
-                      <span className="hint">Attendee {index + 1}: </span>
-                      {ticket}
+                    <li key={ticket}>
+                      <p className="mono">
+                        <span className="hint">Attendee {index + 1}: </span>
+                        {ticket}
+                      </p>
+                      <QrCode
+                        value={ticket}
+                        label={`QR code of attendee ${index + 1}'s claim ticket`}
+                      />
                     </li>
                   ))}
                 </ul>
