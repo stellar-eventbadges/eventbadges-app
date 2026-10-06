@@ -44,14 +44,21 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       records injected, since nothing is deployed): Chromium wrote the
       deterministic file with the expected bytes. An organizer-side export
       stays impossible until the contract can list an event's attendees.
+- [x] Each claim ticket rendered as a QR beside its text on the create-success
+      screen (2026-10-06, draft 01): a hand-rolled encoder in `src/lib/qr.ts`
+      — no new npm dependency, [ADR 0004](docs/decisions/0004-hand-rolled-qr-encoder.md)
+      — rendered as inline SVG with a per-attendee label. **Decoded back to
+      the ticket from the rendered SVG in the tests, but never scanned by a
+      real phone camera** — that step is the human's, and the draft's last
+      line still stands.
 - [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
-      by what the first pilot actually needs: the QR claim code (01), mobile
-      wallet story (10), and the rest.
+      by what the first pilot actually needs: the mobile wallet story (10),
+      and the rest.
 
 ## v0 screens (from playbook section 9) — built
 
 - Organizer: create an event, generate one ticket per attendee and show them
-  once (QR is draft 01), see the claim count, award and revoke.
+  once, each with its QR code, see the claim count, award and revoke.
 - Attendee: enter a code (scanning is draft 02), claim, see badges.
 - Public: verify that an address holds a badge for an event, no wallet needed.
 
