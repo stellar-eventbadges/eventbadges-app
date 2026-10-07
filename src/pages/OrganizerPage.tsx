@@ -55,6 +55,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
   const [revokeAttendee, setRevokeAttendee] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [loadedEvent, setLoadedEvent] = useState<EventRecord | null>(null);
+  const [savedTickets, setSavedTickets] = useState<CreatedEvent | null>(null);
   // Set when an event loads (never during render), so the derived window state
   // the UI shows is a snapshot taken with that load.
   const [nowSeconds, setNowSeconds] = useState(0);
@@ -131,31 +132,29 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
     // root. Nothing but the root goes into the transaction; the codes and
     // their proofs are shown once and never leave the page except through the
     // organizer's own sharing.
-    const codes: string[] = [];
-    const leaves: Uint8Array<ArrayBuffer>[] = [];
-    for (let index = 0; index < countCheck.value; index += 1) {
-      const generated = generateClaimCode(browserRandomBytes);
-      if (!generated.ok) {
-        setFieldErrors((prev) => ({ ...prev, nameHash: generated.message }));
-        return;
-      }
-      const hashed = await hashClaimCode(generated.code);
-      if (!hashed.ok) {
-        setFieldErrors((prev) => ({ ...prev, nameHash: hashed.message }));
-        return;
-      }
-      codes.push(generated.code);
-      leaves.push(hexToBytes(hashed.hashHex));
-    }
-    const tree = await buildMerkleTree(leaves);
-    const tickets = codes.map((code, index) =>
-      formatTicket(
-        code,
-        tree.proofs[index].map((node) => bytesToHex(node)),
-      ),
-    );
-
     const created = await createAction.run(async () => {
+      const codes: string[] = [];
+      const leaves: Uint8Array<ArrayBuffer>[] = [];
+      for (let index = 0; index < countCheck.value; index += 1) {
+        const generated = generateClaimCode(browserRandomBytes);
+        if (!generated.ok) {
+          throw new Error(generated.message);
+        }
+        const hashed = await hashClaimCode(generated.code);
+        if (!hashed.ok) {
+          throw new Error(hashed.message);
+        }
+        codes.push(generated.code);
+        leaves.push(hexToBytes(hashed.hashHex));
+      }
+      const tree = await buildMerkleTree(leaves);
+      const tickets = codes.map((code, index) =>
+        formatTicket(
+          code,
+          tree.proofs[index].map((node) => bytesToHex(node)),
+        ),
+      );
+
       const submit = await runWrite(client, address, config.passphrase, () =>
         client.prepareCreateEvent({
           source: address,
@@ -174,6 +173,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
       };
     });
 
+    if (created !== undefined) setSavedTickets(created);
     if (created !== undefined && created.eventId !== null) {
       setNameHashHex('');
       setManageId(created.eventId.toString());
@@ -237,7 +237,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
         the only address that can award or revoke badges for it.
       </p>
 
-      <fieldset disabled={busy}>
+      <fieldset disabled={busy} aria-busy={createAction.busy}>
         <legend>Create an event</legend>
 
         <Field
@@ -290,29 +290,30 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
         <button type="button" onClick={() => void submitCreate()}>
           Create the event
         </button>
+        {createAction.busy && <p role="status">Preparing tickets and creating the event…</p>}
 
         {createAction.error !== null && <ErrorNotice error={createAction.error} />}
 
-        {createAction.result !== null && (
+        {savedTickets !== null && (
           <>
             <TransactionResult
-              hash={createAction.result.result.hash}
+              hash={savedTickets.result.hash}
               explorerBaseUrl={config.explorerBaseUrl}
             />
-            {createAction.result.eventId !== null && (
+            {savedTickets.eventId !== null && (
               <div className="notice notice-ok" role="status">
                 <p className="notice-title">
-                  Event #{createAction.result.eventId.toString()} created
+                  Event #{savedTickets.eventId.toString()} created
                 </p>
                 <p>
-                  {createAction.result.tickets.length === 1 ? (
+                  {savedTickets.tickets.length === 1 ? (
                     <>
                       The ticket below was generated in your browser and is shown{' '}
                       <strong>once</strong>.
                     </>
                   ) : (
                     <>
-                      The {createAction.result.tickets.length} tickets below were generated in
+                      The {savedTickets.tickets.length} tickets below were generated in
                       your browser and are shown <strong>once</strong>.
                     </>
                   )}{' '}
@@ -326,7 +327,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
                   without a camera can still copy the text.
                 </p>
                 <ul aria-label="Claim tickets" className="ticket-list">
-                  {createAction.result.tickets.map((ticket, index) => (
+                  {savedTickets.tickets.map((ticket, index) => (
                     <li key={ticket}>
                       <p className="mono">
                         <span className="hint">Attendee {index + 1}: </span>
@@ -341,9 +342,11 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
                 </ul>
                 <p className="mono">
                   <span className="hint">Merkle root (on-chain): </span>
-                  {createAction.result.rootHex}
+                  {savedTickets.rootHex}
                 </p>
                 <p className="hint">
+                  These tickets stay available here during another attempt; only a successful
+                  new event replaces them. Leaving this page loses them.
                   There is no way to recover a ticket later — the chain only holds the Merkle
                   root. If you lose them, award badges directly instead.
                 </p>

@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { createHash } from 'node:crypto';
+import { act, fireEvent } from '@testing-library/react';
 
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -45,6 +46,7 @@ vi.mock('../lib/camera', async (importOriginal) => {
 import { qrEncode } from '../lib/qr';
 import { rasterizeQr } from '../test/qrRaster';
 import { grabFrame } from '../lib/camera';
+import * as axe from 'axe-core';
 
 const CODE = 'ab'.repeat(32); // 64 hexadecimal characters, synthetic.
 
@@ -88,6 +90,25 @@ async function acknowledge(
 }
 
 describe('<AttendeePage />', () => {
+  it('guards claiming while browser hashing is pending', async () => {
+    const client = clientFactory([eventFactory({ id: 1n })]);
+    const submit = vi.spyOn(client, 'submit');
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+    fireEvent.change(view.getByLabelText('Event id'), { target: { value: '1' } });
+    fireEvent.change(view.getByLabelText('Claim code or ticket'), { target: { value: CODE } });
+    fireEvent.click(view.getByRole('checkbox', { name: NOTICE_ACK_LABEL }));
+    let release!: (value: ArrayBuffer) => void;
+    const hashing = vi.spyOn(crypto.subtle, 'digest').mockImplementationOnce(() => new Promise<ArrayBuffer>((done) => { release = done; }));
+    try {
+      const button = view.getByRole('button', { name: 'Claim my badge' });
+      act(() => { fireEvent.click(button); fireEvent.click(button); });
+      expect(hashing).toHaveBeenCalledTimes(1);
+      expect(submit).not.toHaveBeenCalled();
+      await act(async () => { release(new Uint8Array(32).buffer); });
+      await view.findByText('Badge claimed');
+      expect(submit).toHaveBeenCalledTimes(1);
+    } finally { hashing.mockRestore(); }
+  });
   it('asks for a wallet before anything else', () => {
     const view = renderOnly(
       <AttendeePage {...pagePropsFactory({ wallet: walletFactory({ address: null }) })} />,
@@ -407,6 +428,33 @@ describe('<AttendeePage />', () => {
     );
     expect(vi.mocked(grabFrame)).toHaveBeenCalled();
     expect(stop).toHaveBeenCalled();
+  });
+
+  it('passes the accessibility check with the scanner mounted', async () => {
+    const { stream } = fakeStream();
+    getUserMedia.mockResolvedValue(stream);
+    vi.mocked(grabFrame).mockReturnValue(ticketFrame());
+    const user = userEvent.setup();
+    const view = renderOnly(
+      <AttendeePage {...pagePropsFactory({ client: clientFactory([eventFactory()]) })} />,
+    );
+    await user.click(view.getByRole('button', { name: 'Scan the code with the camera' }));
+    await vi.waitFor(
+      () =>
+        expect(
+          (view.getByLabelText('Claim code or ticket') as HTMLInputElement).value,
+        ).toBe(CODE),
+      { timeout: 2000 },
+    );
+    const results = await axe.run(view.container, {
+      resultTypes: ['violations'],
+      rules: { 'color-contrast': { enabled: false } },
+    });
+    const serious =
+      results.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      );
+    expect(serious).toHaveLength(0);
   });
 
   it('passes the accessibility check disconnected and connected', async () => {

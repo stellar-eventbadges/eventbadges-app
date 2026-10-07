@@ -43,6 +43,81 @@ beforeEach(() => {
 });
 
 describe('useWallet', () => {
+  it('refuses connecting while adapter disconnect is still pending', async () => {
+    let release!: () => void;
+    vi.mocked(disconnectWallet).mockReturnValue(new Promise<void>((done) => { release = done; }));
+    const { result } = renderHook(() => useWallet());
+    let disconnecting!: Promise<void>;
+    act(() => { disconnecting = result.current.disconnect(); });
+    await act(async () => { await result.current.connect(); });
+    expect(connectWallet).not.toHaveBeenCalled();
+    await act(async () => { release(); await disconnecting; await result.current.connect(); });
+    expect(result.current.address).toBe(ADDRESS);
+  });
+
+  it('clears old network trust immediately while reconnecting', async () => {
+    const { result } = renderHook(() => useWallet());
+    await act(async () => { await result.current.connect(); });
+    let release!: (value: string) => void;
+    vi.mocked(connectWallet).mockReturnValue(new Promise<string>((done) => { release = done; }));
+    let reconnecting!: Promise<void>;
+    act(() => { reconnecting = result.current.connect(); });
+    expect(result.current.onTestnet).toBeNull();
+    await act(async () => { release(ADDRESS); await reconnecting; });
+    expect(result.current.onTestnet).toBe(true);
+  });
+  it('ignores a connection that finishes after disconnect', async () => {
+    let resolve!: (value: string) => void;
+    vi.mocked(connectWallet).mockReturnValue(new Promise<string>((done) => { resolve = done; }));
+    const { result } = renderHook(() => useWallet());
+    let connecting!: Promise<void>;
+    act(() => { connecting = result.current.connect(); });
+    await act(async () => { await result.current.disconnect(); });
+    await act(async () => { resolve(ADDRESS); await connecting; });
+    expect(result.current.address).toBeNull();
+    expect(result.current.onTestnet).toBeNull();
+    expect(checkWalletNetwork).not.toHaveBeenCalled();
+  });
+
+  it('ignores a remembered address that finishes after disconnect', async () => {
+    let resolve!: (value: string | null) => void;
+    vi.mocked(rememberedAddress).mockReturnValue(new Promise<string | null>((done) => { resolve = done; }));
+    const { result } = renderHook(() => useWallet());
+    await waitFor(() => expect(rememberedAddress).toHaveBeenCalled());
+    await act(async () => { await result.current.disconnect(); resolve(ADDRESS); });
+    expect(result.current.address).toBeNull();
+    expect(checkWalletNetwork).not.toHaveBeenCalled();
+  });
+
+  it('ignores a network check that completes after disconnect', async () => {
+    const { result } = renderHook(() => useWallet());
+    await act(async () => { await result.current.connect(); });
+    let resolve!: (value: typeof TESTNET) => void;
+    vi.mocked(checkWalletNetwork).mockReturnValue(new Promise<typeof TESTNET>((done) => { resolve = done; }));
+    let refresh!: Promise<boolean>;
+    act(() => { refresh = result.current.refreshNetwork(); });
+    await act(async () => { await result.current.disconnect(); });
+    await act(async () => { resolve(TESTNET); expect(await refresh).toBe(false); });
+    expect(result.current.onTestnet).toBeNull();
+  });
+
+  it('does not query a late connection after unmount', async () => {
+    let resolve!: (value: string) => void;
+    vi.mocked(connectWallet).mockReturnValue(new Promise<string>((done) => { resolve = done; }));
+    const { result, unmount } = renderHook(() => useWallet());
+    let connecting!: Promise<void>;
+    act(() => { connecting = result.current.connect(); });
+    unmount();
+    await act(async () => { resolve(ADDRESS); await connecting; });
+    expect(checkWalletNetwork).not.toHaveBeenCalled();
+  });
+
+  it('catches initialization failure without an unhandled rejection', async () => {
+    vi.mocked(initWallet).mockRejectedValue(new Error('Unavailable wallet'));
+    const { result } = renderHook(() => useWallet());
+    await waitFor(() => expect(result.current.error).toBe('Unavailable wallet'));
+    expect(rememberedAddress).not.toHaveBeenCalled();
+  });
   it('initialises the kit on mount and restores a remembered address', async () => {
     vi.mocked(rememberedAddress).mockResolvedValue(ADDRESS);
 

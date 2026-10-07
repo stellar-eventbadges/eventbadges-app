@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { messageOf } from '../lib/contractErrors';
 import {
@@ -39,15 +39,22 @@ export function useWallet(): WalletController {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [onTestnet, setOnTestnet] = useState<boolean | null>(null);
+  const generation = useRef(0);
+  const networkRequest = useRef(0);
+  const connectingRef = useRef(false);
+  const disconnectingRef = useRef(false);
 
   const refreshNetwork = useCallback(async (): Promise<boolean> => {
+    const session = generation.current;
+    const request = ++networkRequest.current;
     try {
       const network = await checkWalletNetwork();
+      if (session !== generation.current || request !== networkRequest.current) return false;
       setOnTestnet(network.onTestnet);
       return network.onTestnet;
     } catch {
       // A wallet that cannot report its network must not be trusted.
-      setOnTestnet(false);
+      if (session === generation.current && request === networkRequest.current) setOnTestnet(false);
       return false;
     }
   }, []);
@@ -55,25 +62,37 @@ export function useWallet(): WalletController {
   // On load, remember an address the wallet already authorised and re-check the
   // network, so a returning session cannot silently be on the wrong chain.
   useEffect(() => {
-    void initWallet();
+    const session = generation.current;
     void (async () => {
-      const existing = await rememberedAddress();
-      if (existing !== null) {
-        setAddress(existing);
-        await refreshNetwork();
+      try {
+        await initWallet();
+        const existing = await rememberedAddress();
+        if (session !== generation.current) return;
+        if (existing !== null) {
+          setAddress(existing);
+          await refreshNetwork();
+        }
+      } catch (thrown) {
+        if (session === generation.current) setError(messageOf(thrown) || 'The wallet did not connect.');
       }
     })();
+    return () => { generation.current += 1; };
   }, [refreshNetwork]);
 
   const prepare = useCallback(() => {
-    void prefetchWallet();
+    void prefetchWallet().catch(() => {});
   }, []);
 
   const connect = useCallback(async () => {
+    if (connectingRef.current || disconnectingRef.current) return;
+    connectingRef.current = true;
+    const session = ++generation.current;
     setConnecting(true);
     setError(null);
+    setOnTestnet(null);
     try {
       const connected = await connectWallet();
+      if (session !== generation.current) return;
       setAddress(connected);
       await refreshNetwork();
     } catch (thrown) {
@@ -82,21 +101,28 @@ export function useWallet(): WalletController {
       // The wording stays the kit's own: it is the only party that can say why
       // the connect failed, and a generic replacement would hide a real reason.
       const reason = messageOf(thrown);
-      setError(reason === '' ? 'The wallet did not connect.' : reason);
+      if (session === generation.current) setError(reason === '' ? 'The wallet did not connect.' : reason);
     } finally {
-      setConnecting(false);
+      connectingRef.current = false;
+      if (session === generation.current) setConnecting(false);
     }
   }, [refreshNetwork]);
 
   const disconnect = useCallback(async () => {
+    if (disconnectingRef.current) return;
+    disconnectingRef.current = true;
+    generation.current += 1;
     setError(null);
+    setAddress(null);
+    setOnTestnet(null);
+    setConnecting(false);
     try {
       await disconnectWallet();
     } catch {
       // Nothing useful to show: the kit clears its own state either way.
+    } finally {
+      disconnectingRef.current = false;
     }
-    setAddress(null);
-    setOnTestnet(null);
   }, []);
 
   return { address, connecting, error, onTestnet, prepare, connect, disconnect, refreshNetwork };

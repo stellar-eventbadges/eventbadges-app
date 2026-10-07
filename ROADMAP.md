@@ -15,6 +15,13 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
 
 ## Next
 
+- [x] Submission reliability pass (2026-10-07): action reset/unmount guards,
+      duplicate submission protection covering local hashing, successful ticket
+      retention across failed retries, wallet lifecycle race guards, and
+      keyboard submission with stale-result clearing on public verification.
+      Regressions use synthetic records and mocked wallets; no pilot or live
+      network operation is proven. See [local checks](docs/testing.md).
+
 - [ ] Prove the app against the real thing, in this order: deploy (human, via
       `scripts/deploy-testnet.sh`, pilot gate), then end-to-end tests
       (draft 08), then a real wallet connect + claim (draft 10).

@@ -98,6 +98,8 @@ npm run build       # tsc -b && vite build
 ```
 
 All four run in CI ([.github/workflows/web.yml](.github/workflows/web.yml)).
+Local submission checks and their limits are recorded in
+[docs/testing.md](docs/testing.md); this does not assert that remote CI passed.
 
 ## Structure
 
@@ -148,9 +150,9 @@ is checked out alongside this one. If `ERRORS.md` changes, re-copy
 
 Read this before trusting the app with anything.
 
-**Proven — actually executed, locally and in CI:**
+**Proven locally (remote CI must be checked separately):**
 
-- 293 unit and render tests pass across 35 test files, including an automated
+- Unit and render tests include an automated
   axe-core accessibility check on every screen and its states
   (`npm test`, [src/test](src/test)).
 - Lint (oxlint, 0 warnings), strict type-check (`tsc -b`), and a production
@@ -182,6 +184,12 @@ Read this before trusting the app with anything.
   `src/lib/qr.test.ts`).
 - The wrong-network refusal: a write against a wallet that is not on testnet
   fails **before** any transaction is prepared (`src/lib/flow.test.ts`).
+- Duplicate create/claim submissions are blocked from the first browser hash,
+  and the previous successful event's tickets survive a failed retry. Wallet
+  restoration, connection and network checks cannot restore a disconnected
+  session when their responses arrive late. Verification clears old results
+  and CSV exports when inputs change or a retry fails, and accepts Enter.
+  These are mocked regressions, not evidence of real wallet operation.
 - Two things have been **seen working in a real browser** (Chromium, against
   the dev server): the badge mark, rendered from the app's own `BadgeCard` for
   several badges, and the opt-in CSV, whose button made the browser write

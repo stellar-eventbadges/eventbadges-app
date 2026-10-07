@@ -70,14 +70,10 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
 
     // The contract takes the code's leaf and proof, not the code: hashing here
     // keeps the raw secret on this device and out of the transaction.
-    const hashed = await hashClaimCode(ticket.code);
-    if (!hashed.ok) {
-      setFieldErrors((prev) => ({ ...prev, claimCode: hashed.message }));
-      return;
-    }
-
-    const result = await claimAction.run(async () =>
-      runWrite(client, address, config.passphrase, () =>
+    const result = await claimAction.run(async () => {
+      const hashed = await hashClaimCode(ticket.code);
+      if (!hashed.ok) throw new Error(hashed.message);
+      return runWrite(client, address, config.passphrase, () =>
         client.prepareClaim({
           source: address,
           eventId: idCheck.value,
@@ -85,8 +81,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           leafHash: hexToBytes(hashed.hashHex),
           proof: proof.value,
         }),
-      ),
-    );
+      );
+    });
 
     if (result !== undefined) {
       setClaimCode('');
@@ -145,7 +141,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
         go to the contract, and the code itself is never published.
       </p>
 
-      <fieldset disabled={busy}>
+      <fieldset disabled={busy} aria-busy={claimAction.busy}>
         <legend>Claim with a code</legend>
 
         <Field
@@ -203,6 +199,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
         >
           Claim my badge
         </button>
+        {claimAction.busy && <p role="status">Preparing and submitting your claim…</p>}
         {!acknowledged && (
           <p className="hint" id="claim-gate-hint">
             {NOTICE_GATE_HINT}

@@ -17,11 +17,19 @@ export function VerifyPage({ client }: PageProps) {
   const [eventId, setEventId] = useState('');
   const [attendee, setAttendee] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
-  const [result, setResult] = useState<{ held: boolean; badges: BadgeRecord[] } | null>(null);
 
   const checkAction = useAction<{ held: boolean; badges: BadgeRecord[] }>();
+  const result = checkAction.result;
+
+  function changeField(setValue: (value: string) => void, value: string) {
+    setValue(value);
+    setFieldErrors({});
+    checkAction.reset();
+  }
 
   async function submitCheck() {
+    if (checkAction.busy) return;
+    checkAction.reset();
     const idCheck = validateEventId(eventId);
     const addressCheck = validateAccountAddress(attendee);
 
@@ -30,20 +38,18 @@ export function VerifyPage({ client }: PageProps) {
       verifyAttendee: addressCheck.ok ? null : addressCheck.message,
     });
     if (!idCheck.ok || !addressCheck.ok) {
-      setResult(null);
       return;
     }
 
     // The read source is the checked address itself: a read-only simulation
     // needs a source account but signs nothing, and this app never holds keys.
-    const checked = await checkAction.run(async () => {
+    await checkAction.run(async () => {
       const held = await client.hasBadge(addressCheck.value, idCheck.value, addressCheck.value);
       const badges = held
         ? await client.badgesOf(addressCheck.value, idCheck.value, addressCheck.value)
         : [];
       return { held, badges };
     });
-    if (checked !== undefined) setResult(checked);
   }
 
   return (
@@ -55,14 +61,15 @@ export function VerifyPage({ client }: PageProps) {
         endpoint this app is configured with.
       </p>
 
-      <fieldset disabled={checkAction.busy}>
+      <form noValidate onSubmit={(event) => { event.preventDefault(); void submitCheck(); }}>
+      <fieldset disabled={checkAction.busy} aria-busy={checkAction.busy}>
         <legend>Check attendance</legend>
 
         <Field
           id="verifyEvent"
           label="Event id"
           value={eventId}
-          onChange={setEventId}
+          onChange={(value) => changeField(setEventId, value)}
           inputMode="numeric"
           placeholder="1"
           required
@@ -73,7 +80,7 @@ export function VerifyPage({ client }: PageProps) {
           id="verifyAttendee"
           label="Attendee address"
           value={attendee}
-          onChange={setAttendee}
+          onChange={(value) => changeField(setAttendee, value)}
           placeholder="G…"
           mono
           required
@@ -81,8 +88,8 @@ export function VerifyPage({ client }: PageProps) {
           error={fieldErrors.verifyAttendee}
         />
 
-        <button type="button" onClick={() => void submitCheck()}>
-          Verify
+        <button type="submit">
+          {checkAction.busy ? 'Verifying…' : 'Verify'}
         </button>
 
         {checkAction.error !== null && <ErrorNotice error={checkAction.error} />}
@@ -118,6 +125,7 @@ export function VerifyPage({ client }: PageProps) {
           </>
         )}
       </fieldset>
+      </form>
     </section>
   );
 }

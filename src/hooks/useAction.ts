@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { describeContractError, type MappedError } from '../lib/contractErrors';
 
@@ -27,16 +27,24 @@ export function useAction<T>(): ActionState<T> {
 
   const busyRef = useRef(false);
   const generationRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; generationRef.current += 1; };
+  }, []);
 
   const run = useCallback(async (task: () => Promise<T>): Promise<T | undefined> => {
-    if (busyRef.current) return undefined;
+    if (busyRef.current || !mountedRef.current) return undefined;
     busyRef.current = true;
     const generation = ++generationRef.current;
     setBusy(true);
     setError(null);
+    setResult(null);
     try {
       const value = await task();
-      if (generation === generationRef.current) setResult(value);
+      if (generation !== generationRef.current) return undefined;
+      setResult(value);
       return value;
     } catch (thrown) {
       if (generation === generationRef.current) {
@@ -45,14 +53,13 @@ export function useAction<T>(): ActionState<T> {
       }
       return undefined;
     } finally {
-      if (generation === generationRef.current) {
-        setBusy(false);
-        busyRef.current = false;
-      }
+      if (mountedRef.current) setBusy(false);
+      busyRef.current = false;
     }
   }, []);
 
   const reset = useCallback(() => {
+    generationRef.current += 1;
     setError(null);
     setResult(null);
   }, []);

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, within } from '@testing-library/react';
+import { act, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -46,6 +46,51 @@ function ticketText(item: HTMLElement): string {
 }
 
 describe('<OrganizerPage />', () => {
+  it('holds the submit guard while browser hashing is pending', async () => {
+    const client = clientFactory([eventFactory({ id: 5n })]);
+    client.submit = vi.fn(async () => ({ hash: 'b'.repeat(64), returnValue: u64ToScVal(5n) }));
+    const view = renderOnly(<OrganizerPage {...pagePropsFactory({ client })} />);
+    fireEvent.change(view.getByLabelText('Event name hash (64 hex characters)'), { target: { value: NAME_HASH } });
+    fireEvent.change(view.getByLabelText('Badge cap'), { target: { value: '50' } });
+    let release!: (value: ArrayBuffer) => void;
+    const hashing = vi.spyOn(crypto.subtle, 'digest').mockImplementationOnce(() => new Promise<ArrayBuffer>((done) => { release = done; }));
+    try {
+      const button = view.getByRole('button', { name: 'Create the event' });
+      act(() => { fireEvent.click(button); fireEvent.click(button); });
+      expect(hashing).toHaveBeenCalledTimes(1);
+      expect(client.submit).not.toHaveBeenCalled();
+      await act(async () => { release(new Uint8Array(32).buffer); });
+      await view.findByText('Event #5 created');
+      expect(client.submit).toHaveBeenCalledTimes(1);
+    } finally { hashing.mockRestore(); }
+  });
+
+  it('keeps the original ticket bundle across failure and replaces it only on success', async () => {
+    const client = clientFactory([eventFactory({ id: 5n }), eventFactory({ id: 6n })]);
+    client.submit = vi.fn()
+      .mockResolvedValueOnce({ hash: 'b'.repeat(64), returnValue: u64ToScVal(5n) })
+      .mockRejectedValueOnce(new Error('Synthetic refusal'))
+      .mockResolvedValueOnce({ hash: 'c'.repeat(64), returnValue: u64ToScVal(6n) });
+    const view = renderOnly(<OrganizerPage {...pagePropsFactory({ client })} />);
+    const fill = () => {
+      fireEvent.change(view.getByLabelText('Event name hash (64 hex characters)'), { target: { value: NAME_HASH } });
+      fireEvent.change(view.getByLabelText('Badge cap'), { target: { value: '50' } });
+    };
+    fill();
+    fireEvent.click(view.getByRole('button', { name: 'Create the event' }));
+    await view.findByText('Event #5 created');
+    await waitFor(() => expect((view.getByRole('button', { name: 'Create the event' }) as HTMLButtonElement).disabled).toBe(false));
+    const original = view.getByRole('list', { name: 'Claim tickets' }).textContent;
+    fill();
+    fireEvent.click(view.getByRole('button', { name: 'Create the event' }));
+    await view.findByText('Synthetic refusal');
+    expect(view.getByRole('list', { name: 'Claim tickets' }).textContent).toBe(original);
+    expect(view.getByText('Event #5 created')).not.toBeNull();
+    fireEvent.click(view.getByRole('button', { name: 'Create the event' }));
+    await view.findByText('Event #6 created');
+    expect(view.queryByText('Event #5 created')).toBeNull();
+    expect(view.getByRole('list', { name: 'Claim tickets' }).textContent).not.toBe(original);
+  });
   it('asks for a wallet before anything else', () => {
     const view = renderOnly(
       <OrganizerPage {...pagePropsFactory({ wallet: walletFactory({ address: null }) })} />,

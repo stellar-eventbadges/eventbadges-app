@@ -19,6 +19,34 @@ import { VerifyPage } from './VerifyPage';
 // The verify screen reads only; the wallet is irrelevant, but the harness
 // factory still provides one.
 describe('<VerifyPage />', () => {
+  it('verifies with Enter and removes stale records when the input changes', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const client = clientFactory([eventFactory()], [badgeFactory({ attendee: address })]);
+    const view = await renderWithA11y(<VerifyPage {...pagePropsFactory({ client })} />);
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Attendee address'), `${address}{Enter}`);
+    expect(await view.findByText(/holds a badge for that event/)).not.toBeNull();
+    await user.type(view.getByLabelText('Event id'), '2');
+    expect(view.queryByText(/holds a badge for that event/)).toBeNull();
+    expect(view.queryByRole('button', { name: /as CSV/ })).toBeNull();
+  });
+
+  it('removes a previous success when a new check fails', async () => {
+    const user = userEvent.setup();
+    const address = fakeAccount();
+    const client = clientFactory([eventFactory()], [badgeFactory({ attendee: address })]);
+    const view = await renderWithA11y(<VerifyPage {...pagePropsFactory({ client })} />);
+    await user.type(view.getByLabelText('Event id'), '1');
+    await user.type(view.getByLabelText('Attendee address'), address);
+    await user.click(view.getByRole('button', { name: 'Verify' }));
+    expect(await view.findByText(/holds a badge for that event/)).not.toBeNull();
+    client.failNextReadWith(new Error('HostError: Error(Contract, #1)'));
+    await user.click(view.getByRole('button', { name: 'Verify' }));
+    expect(await view.findByRole('alert')).not.toBeNull();
+    expect(view.queryByText(/holds a badge for that event/)).toBeNull();
+    expect(view.queryByRole('button', { name: /as CSV/ })).toBeNull();
+  });
   it('verifies that an address holds a badge and shows the record', async () => {
     const user = userEvent.setup();
     const address = fakeAccount();
