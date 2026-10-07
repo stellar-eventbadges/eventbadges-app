@@ -51,15 +51,29 @@ What is next for `eventbadges-app`, in order. Anything not listed as done is
       the ticket from the rendered SVG in the tests, but never scanned by a
       real phone camera** — that step is the human's, and the draft's last
       line still stands.
+- [x] Scan a claim code with the camera on the attendee side (2026-10-07,
+  draft 02): open the device camera from an explicit button, poll frames
+  through a local pixel-to-modules pipeline (`qrScan`) paired with the repaired
+  matrix decoder (`qrDecode`), and validate the decoded value through the same
+  `checkClaimEntry` path typed input uses. Camera failure wording is reviewed
+  and per-cause (denied, missing, unsupported, generic fallback); the stream is
+  stopped on success, cancel and unmount, and decoding is local — no new network
+  request. The decoder keeps being hand-rolled (ADR 0005); no new dependency.
+  **Never scanned by a real phone camera** — that step is the human's, and the
+  draft's last line still stands.
 - [ ] Everything else in [docs/issue-drafts/](docs/issue-drafts/), prioritised
-      by what the first pilot actually needs: the mobile wallet story (10),
-      and the rest.
+  by what the first pilot actually needs: the mobile wallet story (10),
+  and the rest.
 
 ## v0 screens (from playbook section 9) — built
 
 - Organizer: create an event, generate one ticket per attendee and show them
   once, each with its QR code, see the claim count, award and revoke.
-- Attendee: enter a code (scanning is draft 02), claim, see badges.
+- Attendee: enter a code, claim, see badges — and scan a ticket with the device
+  camera instead of typing it (draft 02). The camera only starts after the scan
+  button, releases on success, cancel and unmount, and a failed scan shows the
+  reviewed wording; the decoded value is validated the same way a typed one is.
+  **Never scanned by a real phone camera** — that step is the human's.
 - Public: verify that an address holds a badge for an event, no wallet needed.
 
 Known app gaps, deliberately out of v0 and drafted: share-to-social card (04),
