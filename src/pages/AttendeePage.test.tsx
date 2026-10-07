@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The write path goes through lib/wallet; mock it so no test can reach a real
 // wallet, a real RPC endpoint, or a real key. runWrite's network gate and the
@@ -37,7 +37,47 @@ import { CLAIM_CODE_WARNING, NOTICE_ACK_LABEL, NOTICE_GATE_HINT } from '../lib/p
 
 import { AttendeePage } from './AttendeePage';
 
+vi.mock('../lib/camera', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../lib/camera')>();
+  return { ...original, grabFrame: vi.fn() };
+});
+
+import { qrEncode } from '../lib/qr';
+import { rasterizeQr } from '../test/qrRaster';
+import { grabFrame } from '../lib/camera';
+
 const CODE = 'ab'.repeat(32); // 64 hexadecimal characters, synthetic.
+
+function ticketFrame(): { width: number; height: number; data: Uint8ClampedArray } {
+  return rasterizeQr(qrEncode(CODE, 'L'), { modulePixels: 4 });
+}
+
+/**
+ * A camera stream whose release the test can watch. A real `MediaStream`
+ * instance — happy-dom refuses a `srcObject` that is not one — with its track
+ * list swapped for a stop spy. The same fake used in `QrScanner.test.tsx`.
+ */
+function fakeStream(): { stream: MediaStream; stop: ReturnType<typeof vi.fn> } {
+  const stop = vi.fn();
+  const stream = new MediaStream();
+  stream.getTracks = () => [{ stop } as unknown as MediaStreamTrack];
+  return { stream, stop };
+}
+
+let getUserMedia: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  getUserMedia = vi.fn();
+  Object.defineProperty(navigator, 'mediaDevices', {
+    value: { getUserMedia },
+    configurable: true,
+  });
+});
+
+afterEach(() => {
+  vi.mocked(grabFrame).mockReset();
+  Reflect.deleteProperty(navigator, 'mediaDevices');
+});
 
 /** Ticks the privacy acknowledgement, which gates the claim button. */
 async function acknowledge(
@@ -311,6 +351,51 @@ describe('<AttendeePage />', () => {
     await acknowledge(user, view);
     expect(button.getAttribute('aria-disabled')).toBeNull();
     expect(textOf(view.container)).not.toContain(NOTICE_GATE_HINT);
+  });
+
+  it('offers a scan button on the claim screen', () => {
+    const view = renderOnly(<AttendeePage {...pagePropsFactory()} />);
+    expect(view.getByRole('button', { name: 'Scan the code with the camera' })).not.toBeNull();
+  });
+
+  it('scans a ticket through the page and releases the camera', async () => {
+    const { stream, stop } = fakeStream();
+    getUserMedia.mockResolvedValue(stream);
+    vi.mocked(grabFrame).mockReturnValue(ticketFrame());
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory()]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+
+    await user.click(view.getByRole('button', { name: 'Scan the code with the camera' }));
+
+    await view.findByRole('button', { name: 'Cancel' });
+    await vi.waitFor(() => expect(vi.mocked(grabFrame)).toHaveBeenCalled());
+    await vi.waitFor(() => expect(stop).toHaveBeenCalled());
+    expect((view.getByLabelText('Claim code or ticket') as HTMLInputElement).value).toBe(
+      CODE,
+    );
+  });
+
+  it('refuses a scanned value that is not a valid claim code', async () => {
+    const { stream, stop } = fakeStream();
+    getUserMedia.mockResolvedValue(stream);
+    vi.mocked(grabFrame).mockReturnValue(
+      rasterizeQr(qrEncode('not a claim code', 'L'), { modulePixels: 4 }),
+    );
+    const user = userEvent.setup();
+    const client = clientFactory([eventFactory()]);
+    const view = renderOnly(<AttendeePage {...pagePropsFactory({ client })} />);
+
+    await user.click(view.getByRole('button', { name: 'Scan the code with the camera' }));
+
+    await view.findByRole('button', { name: 'Cancel' });
+    await vi.waitFor(() => expect(vi.mocked(grabFrame)).toHaveBeenCalled());
+    await vi.waitFor(() => expect(stop).toHaveBeenCalled());
+    expect(
+      view
+        .getByLabelText('Claim code or ticket')
+        .getAttribute('aria-invalid'),
+    ).toBe('true');
   });
 
   it('passes the accessibility check disconnected and connected', async () => {
