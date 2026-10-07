@@ -148,6 +148,41 @@ export function parseClaimTicket(input: string): TicketCheck {
   return { ok: true, code: codeCheck.code, proofText: parts.slice(1).join(' ') };
 }
 
+export interface ClaimEntryCheck {
+  /** Error for the claim-code field, or null when the entry is fine. */
+  readonly codeError: string | null;
+  /** Error for the claim-proof field, or null when the entry is fine. */
+  readonly proofError: string | null;
+  readonly ticket: TicketCheck;
+  readonly proof: ProofCheck;
+}
+
+/**
+ * The claim form's entry check in one place, so a scanned code and a typed one
+ * run the exact same validation and show the exact same messages. A ticket
+ * brings its own proof; the separate field is for codes and proofs shared
+ * apart. A malformed proof inside a pasted ticket belongs to the ticket field,
+ * the one the attendee actually typed in — or scanned.
+ */
+export function checkClaimEntry(claimCode: string, claimProof: string): ClaimEntryCheck {
+  const ticket = parseClaimTicket(claimCode);
+  // A ticket brings its own proof; the separate field is for codes and
+  // proofs shared apart. A bare code needs no proof only for a one-attendee
+  // event, where the root is the leaf.
+  const ticketHasProof = ticket.ok && ticket.proofText !== '';
+  const proof = parseClaimProof(ticketHasProof ? ticket.proofText : claimProof);
+  // A malformed proof inside a pasted ticket belongs to the ticket field, the
+  // one the attendee actually typed in.
+  const ticketProofError = ticketHasProof && !proof.ok ? proof.message : null;
+
+  return {
+    codeError: ticket.ok ? ticketProofError : ticket.message,
+    proofError: ticketHasProof || proof.ok ? null : proof.message,
+    ticket,
+    proof,
+  };
+}
+
 /**
  * One ticket in the paste-able form `parseClaimTicket` reads back: the code
  * alone when the proof is empty (a one-attendee event), `code:proof` otherwise.

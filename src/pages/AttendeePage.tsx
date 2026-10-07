@@ -6,15 +6,11 @@ import { CsvExport } from '../components/CsvExport';
 import { ErrorNotice } from '../components/ErrorNotice';
 import { Field } from '../components/Field';
 import { PrivacyNotice } from '../components/PrivacyNotice';
+import { QrScanner } from '../components/QrScanner';
 import { TransactionResult } from '../components/TransactionResult';
 import { useAction } from '../hooks/useAction';
 import type { BadgeRecord } from '../lib/badge';
-import {
-  hashClaimCode,
-  hexToBytes,
-  parseClaimProof,
-  parseClaimTicket,
-} from '../lib/claimCode';
+import { checkClaimEntry, hashClaimCode, hexToBytes } from '../lib/claimCode';
 import type { SubmitResult } from '../lib/contract';
 import { runWrite } from '../lib/flow';
 import { NOTICE_GATE_HINT } from '../lib/privacyNotice';
@@ -30,6 +26,9 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
   const [eventId, setEventId] = useState('');
   const [claimCode, setClaimCode] = useState('');
   const [claimProof, setClaimProof] = useState('');
+  // The camera runs only while this is true, and this turns true only from the
+  // "Scan the code with the camera" button — an explicit user action.
+  const [scanning, setScanning] = useState(false);
   const [lookupAddress, setLookupAddress] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({});
   const [badges, setBadges] = useState<BadgeRecord[] | null>(null);
@@ -58,22 +57,16 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     if (!acknowledged) return;
 
     const idCheck = validateEventId(eventId);
-    const ticket = parseClaimTicket(claimCode);
-    // A ticket brings its own proof; the separate field is for codes and
-    // proofs shared apart. A bare code needs no proof only for a one-attendee
-    // event, where the root is the leaf.
-    const ticketHasProof = ticket.ok && ticket.proofText !== '';
-    const proofCheck = parseClaimProof(ticketHasProof ? ticket.proofText : claimProof);
-    // A malformed proof inside a pasted ticket belongs to the ticket field, the
-    // one the attendee actually typed in.
-    const ticketProofError = ticketHasProof && !proofCheck.ok ? proofCheck.message : null;
+    // Exactly the check a scanned value gets (see `handleScan`): one entry
+    // check, one set of messages, however the code arrived.
+    const { codeError, proofError, ticket, proof } = checkClaimEntry(claimCode, claimProof);
 
     setFieldErrors({
       claimEvent: idCheck.ok ? null : idCheck.message,
-      claimCode: ticket.ok ? ticketProofError : ticket.message,
-      claimProof: ticketHasProof || proofCheck.ok ? null : proofCheck.message,
+      claimCode: codeError,
+      claimProof: proofError,
     });
-    if (!idCheck.ok || !ticket.ok || !proofCheck.ok) return;
+    if (!idCheck.ok || !ticket.ok || !proof.ok) return;
 
     // The contract takes the code's leaf and proof, not the code: hashing here
     // keeps the raw secret on this device and out of the transaction.
@@ -90,7 +83,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           eventId: idCheck.value,
           attendee: address,
           leafHash: hexToBytes(hashed.hashHex),
-          proof: proofCheck.value,
+          proof: proof.value,
         }),
       ),
     );
@@ -101,6 +94,18 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
       // Refresh the badge list for this event once the claim is in.
       await loadBadges(address, idCheck.value);
     }
+  }
+
+  /**
+   * A symbol came out of the camera. It lands in the claim-code field and
+   * gets exactly the check typed input gets, with the same messages — so an
+   * unrelated QR code is refused the same way a mistyped code is.
+   */
+  function handleScan(text: string) {
+    setScanning(false);
+    setClaimCode(text);
+    const { codeError, proofError } = checkClaimEntry(text, claimProof);
+    setFieldErrors((prev) => ({ ...prev, claimCode: codeError, claimProof: proofError }));
   }
 
   async function loadBadges(who: string, id: bigint) {
@@ -165,6 +170,14 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           hint="Paste the ticket the organizer gave you — the code alone, or the code with : and its proof. If it does not work, check it character by character — codes are long on purpose."
           error={fieldErrors.claimCode}
         />
+
+        {scanning ? (
+          <QrScanner onScan={handleScan} onCancel={() => setScanning(false)} />
+        ) : (
+          <button type="button" onClick={() => setScanning(true)}>
+            Scan the code with the camera
+          </button>
+        )}
 
         <Field
           id="claimProof"

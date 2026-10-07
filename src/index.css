@@ -445,6 +445,27 @@ legend {
   margin-top: 0.6rem;
 }
 
+/* The camera scanner. The preview is the widest thing in the claim form,
+   capped so it stays a phone-friendly size, with a black backdrop until the
+   picture arrives. The canvas stays hidden: it only carries pixels to the
+   local decoder. */
+.scanner {
+  margin-block: 0.85rem;
+}
+.scanner-preview {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #000000;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.scanner .hint {
+  margin: 0.5rem 0;
+}
+
 .notice {
   border: 1px solid var(--line);
   border-left: 6px solid var(--line-strong);

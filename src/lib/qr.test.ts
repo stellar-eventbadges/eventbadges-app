@@ -568,6 +568,61 @@ describe('qrEncode / qrDecode round-trip', () => {
   });
 });
 
+describe('qrDecode repairs damaged matrices', () => {
+  // Rows and columns 9..23 are pure data in versions 4 through 6: every
+  // function pattern (finders, separators, timing, format, alignment, version
+  // blocks) sits outside that band, so flips there land only in data codewords.
+  function flipsInDataBand(count: number): (readonly [number, number])[] {
+    const flips: (readonly [number, number])[] = [];
+    for (let i = 0; i < count; i += 1) {
+      flips.push([9 + (i % 15), 9 + ((i * 7) % 15)]);
+    }
+    return flips;
+  }
+
+  function withFlips(qr: QrMatrix, flips: readonly (readonly [number, number])[]): QrMatrix {
+    const modules = qr.modules.map((row) => [...row]);
+    for (const [x, y] of flips) modules[y][x] = !modules[y][x];
+    return { size: qr.size, modules };
+  }
+
+  it('repairs wrong codewords up to the level L budget', () => {
+    // Version 4 at L: one block, 20 check codewords, so 10 wrong codewords
+    // are repairable — and 10 flipped modules can damage at most 10.
+    const qr = qrEncode(CLAIM_CODE, 'L', { version: 4 });
+    expect(qrDecode(withFlips(qr, flipsInDataBand(10)))).toBe(CLAIM_CODE);
+  });
+
+  it('repairs wrong codewords spread over several blocks', () => {
+    // Version 6 at Q: four blocks of 24 check codewords (12 repairable
+    // each); 8 flips can damage at most 8 in any one block.
+    const qr = qrEncode(CLAIM_CODE, 'Q', { version: 6 });
+    expect(qrDecode(withFlips(qr, flipsInDataBand(8)))).toBe(CLAIM_CODE);
+  });
+
+  it('matches the format information tolerantly', () => {
+    // Three wrong format modules are the BCH(15,5) code's repair radius.
+    const qr = qrEncode(CLAIM_CODE, 'L', { version: 4 });
+    const damaged = withFlips(qr, [
+      [8, 0],
+      [8, 2],
+      [7, 8],
+    ]);
+    expect(qrDecode(damaged)).toBe(CLAIM_CODE);
+  });
+
+  it('throws rather than guess when the damage is beyond the budget', () => {
+    // Inverting the whole 15x15 data band flips 225 modules, which must land
+    // in more codewords than any block can repair.
+    const qr = qrEncode(CLAIM_CODE, 'L', { version: 4 });
+    const flips: (readonly [number, number])[] = [];
+    for (let y = 9; y <= 23; y += 1) {
+      for (let x = 9; x <= 23; x += 1) flips.push([x, y]);
+    }
+    expect(() => qrDecode(withFlips(qr, flips))).toThrow();
+  });
+});
+
 describe('qrDecode guards', () => {
   it('refuses a matrix that is not a valid size', () => {
     expect(() => qrDecode({ size: 22, modules: [] })).toThrow(RangeError);

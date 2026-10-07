@@ -10,11 +10,13 @@
  * encodes them, and a v0 that does one thing correctly beats one that does
  * four things approximately.
  *
- * The decoder here reads a **clean** matrix — no error correction, no camera
- * image, no binarisation. It exists so the round-trip test can prove the
- * encoder is a pure, invertible function (draft 01's acceptance criterion),
- * and it is a starting point for the camera work in draft 02, not a camera
- * decoder.
+ * The decoder reads a module matrix — no camera image, no binarisation; that
+ * half is `qrScan.ts` (draft 02). It matches tolerant format bits and repairs
+ * wrong codewords up to the level's Reed–Solomon budget, so a matrix sampled
+ * from a real frame can survive a wrong module or three. It exists so the
+ * round-trip test can prove the encoder is a pure, invertible function
+ * (draft 01's acceptance criterion), and as the decoding half of the camera
+ * scanner.
  *
  * Everything is integer-only and dependency-free, following `badgeArt.ts` and
  * `badgeCsv.ts`: the output is a pure function of the payload and the level, so
@@ -444,6 +446,136 @@ function reedSolomonRemainder(data: readonly number[], divisor: readonly number[
   return result;
 }
 
+/** GF(2^8) antilog/log tables (primitive 0x11D), for the decoder's repair. */
+const GF_EXP = new Uint8Array(512);
+const GF_LOG = new Uint8Array(256);
+{
+  let x = 1;
+  for (let i = 0; i < 255; i += 1) {
+    GF_EXP[i] = x;
+    GF_LOG[x] = i;
+    x = (x << 1) ^ ((x & 0x80) !== 0 ? 0x11d : 0);
+    x &= 0xff;
+  }
+  for (let i = 255; i < 512; i += 1) GF_EXP[i] = GF_EXP[i - 255];
+}
+
+function gfMultiply(a: number, b: number): number {
+  return a === 0 || b === 0 ? 0 : GF_EXP[GF_LOG[a] + GF_LOG[b]];
+}
+
+function gfDivide(a: number, b: number): number {
+  if (b === 0) throw new Error('division by zero in GF(2^8)');
+  if (a === 0) return 0;
+  return GF_EXP[(GF_LOG[a] - GF_LOG[b] + 255) % 255];
+}
+
+/**
+ * Repairs up to `eccLen / 2` wrong codewords in one Reed–Solomon block, in
+ * place. The syndromes are the block evaluated at the generator's roots
+ * (α^0..α^eccLen-1); all zero means nothing to repair. Otherwise a
+ * Berlekamp–Massey run finds the error locator, a Chien search finds the
+ * positions, and a small GF(2^8) solve finds the values. Damage beyond the
+ * code's budget throws — and the syndromes are re-checked afterwards, so this
+ * can never silently leave a wrong block behind.
+ */
+function repairReedSolomonBlock(codewords: number[], eccLen: number): void {
+  const length = codewords.length;
+
+  // Syndromes S_i = C(α^i).
+  const syndromes: number[] = [];
+  for (let i = 0; i < eccLen; i += 1) {
+    let value = 0;
+    for (const codeword of codewords) value = gfMultiply(value, GF_EXP[i]) ^ codeword;
+    syndromes.push(value);
+  }
+  if (syndromes.every((s) => s === 0)) return;
+
+  // Berlekamp–Massey over S_0..S_eccLen-1: Λ(x) = ∏(1 - X_j·x).
+  const lambda = [1];
+  let backup = [1];
+  let degree = 0;
+  let backupShift = 1;
+  let backupDiscrepancy = 1;
+  for (let n = 0; n < eccLen; n += 1) {
+    let discrepancy = syndromes[n];
+    for (let i = 1; i <= degree; i += 1) {
+      discrepancy ^= gfMultiply(lambda[i] ?? 0, syndromes[n - i]);
+    }
+    if (discrepancy === 0) {
+      backupShift += 1;
+      continue;
+    }
+    const before = lambda.slice();
+    const scale = gfDivide(discrepancy, backupDiscrepancy);
+    for (let i = 0; i < backup.length; i += 1) {
+      const target = i + backupShift;
+      lambda[target] = (lambda[target] ?? 0) ^ gfMultiply(backup[i], scale);
+    }
+    if (2 * degree <= n) {
+      degree = n + 1 - degree;
+      backup = before;
+      backupDiscrepancy = discrepancy;
+      backupShift = 1;
+    } else {
+      backupShift += 1;
+    }
+  }
+  if (degree > Math.floor(eccLen / 2)) {
+    throw new Error('QR damage is beyond the error correction budget');
+  }
+
+  // Chien search: Λ(α^-p) = 0 marks an error at codeword index length-1-p.
+  const positions: number[] = [];
+  for (let p = 0; p < length; p += 1) {
+    let value = 0;
+    let power = 1;
+    const xInverse = GF_EXP[(255 - p) % 255];
+    for (let i = 0; i <= degree; i += 1) {
+      value ^= gfMultiply(lambda[i] ?? 0, power);
+      power = gfMultiply(power, xInverse);
+    }
+    if (value === 0) positions.push(length - 1 - p);
+  }
+  if (positions.length !== degree) {
+    throw new Error('QR damage is inconsistent with the error locator');
+  }
+
+  // Values: solve S_i = Σ_j e_j·X_j^i (i < degree) over GF(2^8), where
+  // X_j = α^p is tied to the error's degree p = length-1-k, not its index k.
+  const xValues = positions.map((k) => GF_EXP[(length - 1 - k) % 255]);
+  const rows: number[][] = [];
+  let powers = xValues.map(() => 1);
+  for (let i = 0; i < degree; i += 1) {
+    rows.push([...powers, syndromes[i]]);
+    powers = powers.map((value, j) => gfMultiply(value, xValues[j]));
+  }
+  for (let col = 0; col < degree; col += 1) {
+    let pivot = col;
+    while (pivot < degree && rows[pivot][col] === 0) pivot += 1;
+    if (pivot === degree) throw new Error('QR error values are not solvable');
+    [rows[col], rows[pivot]] = [rows[pivot], rows[col]];
+    const inverse = gfDivide(1, rows[col][col]);
+    for (let j = col; j <= degree; j += 1) {
+      rows[col][j] = gfMultiply(rows[col][j], inverse);
+    }
+    for (let r = 0; r < degree; r += 1) {
+      if (r === col) continue;
+      const factor = rows[r][col];
+      if (factor === 0) continue;
+      for (let j = col; j <= degree; j += 1) rows[r][j] ^= gfMultiply(factor, rows[col][j]);
+    }
+  }
+  for (let j = 0; j < degree; j += 1) codewords[positions[j]] ^= rows[j][degree];
+
+  // Safety net: the repaired block must have all-zero syndromes.
+  for (let i = 0; i < eccLen; i += 1) {
+    let value = 0;
+    for (const codeword of codewords) value = gfMultiply(value, GF_EXP[i]) ^ codeword;
+    if (value !== 0) throw new Error('QR block still fails its syndromes after repair');
+  }
+}
+
 /** The data codewords for byte mode, with the terminator and pad bytes. */
 function buildDataCodewords(bytes: readonly number[], version: number, ordinal: number): number[] {
   const capacityBits = numDataCodewords(version, ordinal) * 8;
@@ -574,7 +706,12 @@ export function qrEncode(
   return { size: bestGrid.size, modules: bestGrid.modules.map((row) => row.slice()) };
 }
 
-/** Reads 15 format-info bits from the first copy and returns the 5 data bits. */
+/**
+ * Reads the 15 format-info bits from the first copy and returns the 5 data
+ * bits (level and mask). The bits carry a BCH(15,5) code, so a sampled frame
+ * with up to three wrong format modules is matched to the nearest valid
+ * codeword; worse than that throws rather than guessing at the mask.
+ */
 function readFormatBits(qr: QrMatrix): number {
   const { modules } = qr;
   const read = (x: number, y: number, index: number): number =>
@@ -585,14 +722,36 @@ function readFormatBits(qr: QrMatrix): number {
   bits |= read(8, 8, 7);
   bits |= read(7, 8, 8);
   for (let i = 9; i < 15; i += 1) bits |= read(14 - i, 8, i);
-  return (bits ^ 0x5412) >>> 10;
+
+  let best = -1;
+  let bestDistance = 16;
+  for (const level of ['L', 'M', 'Q', 'H'] as const) {
+    for (let mask = 0; mask < 8; mask += 1) {
+      let distance = 0;
+      let diff = formatInfoBits(level, mask) ^ bits;
+      while (diff !== 0) {
+        distance += diff & 1;
+        diff >>>= 1;
+      }
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = (ECC_FORMAT_BITS[level] << 3) | mask;
+      }
+    }
+  }
+  if (best === -1 || bestDistance > 3) {
+    throw new Error('QR format information is unreadable');
+  }
+  return best;
 }
 
 /**
- * Decodes a clean, error-free module matrix back to its text. Only byte-mode
- * symbols are handled; anything else throws. This is the round-trip partner of
- * `qrEncode` (and a base for draft 02), not an image decoder: it does no error
- * correction and assumes every module is exactly as encoded.
+ * Decodes a module matrix back to its text. Only byte-mode symbols are
+ * handled; anything else throws. This is the round-trip partner of `qrEncode`
+ * and the decoding half of draft 02's scanner — but it reads modules, not
+ * pixels: image work lives in `qrScan.ts`. Format bits are matched tolerantly
+ * and wrong codewords are repaired up to the level's Reed–Solomon budget;
+ * beyond that it throws rather than return wrong text.
  */
 export function qrDecode(qr: QrMatrix): string {
   const { size } = qr;
@@ -652,10 +811,16 @@ export function qrDecode(qr: QrMatrix): string {
     }
   }
 
+  // Each block is reassembled as transmitted (its data then its check
+  // codewords, skipping a short block's spare slot), repaired, and its data
+  // taken back out.
   const dataCodewords: number[] = [];
   for (let i = 0; i < numBlocks; i += 1) {
     const dataLen = shortBlockLen - blockEccLen + (i < numShortBlocks ? 0 : 1);
-    for (let j = 0; j < dataLen; j += 1) dataCodewords.push(blocks[i][j]);
+    const block = blocks[i];
+    const received = block.slice(0, dataLen).concat(block.slice(block.length - blockEccLen));
+    repairReedSolomonBlock(received, blockEccLen);
+    for (let j = 0; j < dataLen; j += 1) dataCodewords.push(received[j]);
   }
 
   // Parse the bit stream: a 4-bit mode indicator then the byte-mode segment.
