@@ -368,12 +368,18 @@ describe('<AttendeePage />', () => {
 
     await user.click(view.getByRole('button', { name: 'Scan the code with the camera' }));
 
-    await view.findByRole('button', { name: 'Cancel' });
-    await vi.waitFor(() => expect(vi.mocked(grabFrame)).toHaveBeenCalled());
-    await vi.waitFor(() => expect(stop).toHaveBeenCalled());
-    expect((view.getByLabelText('Claim code or ticket') as HTMLInputElement).value).toBe(
-      CODE,
+    // The decoded value lands in the field synchronously once the decoder
+    // returns — that is the deterministic outcome, so wait on it rather than
+    // on the camera-release side effect, which races with the 150ms poll
+    // interval under concurrent test isolates.
+    await vi.waitFor(
+      () =>
+        expect((view.getByLabelText('Claim code or ticket') as HTMLInputElement).value)
+          .toBe(CODE),
+      { timeout: 2000 },
     );
+    expect(vi.mocked(grabFrame)).toHaveBeenCalled();
+    expect(stop).toHaveBeenCalled();
   });
 
   it('refuses a scanned value that is not a valid claim code', async () => {
@@ -388,14 +394,19 @@ describe('<AttendeePage />', () => {
 
     await user.click(view.getByRole('button', { name: 'Scan the code with the camera' }));
 
-    await view.findByRole('button', { name: 'Cancel' });
-    await vi.waitFor(() => expect(vi.mocked(grabFrame)).toHaveBeenCalled());
-    await vi.waitFor(() => expect(stop).toHaveBeenCalled());
-    expect(
-      view
-        .getByLabelText('Claim code or ticket')
-        .getAttribute('aria-invalid'),
-    ).toBe('true');
+    // Wait on the field being marked invalid — the deterministic outcome — then
+    // confirm the camera was released (grabFrame was driven, stop was called).
+    await vi.waitFor(
+      () =>
+        expect(
+          view
+            .getByLabelText('Claim code or ticket')
+            .getAttribute('aria-invalid'),
+        ).toBe('true'),
+      { timeout: 2000 },
+    );
+    expect(vi.mocked(grabFrame)).toHaveBeenCalled();
+    expect(stop).toHaveBeenCalled();
   });
 
   it('passes the accessibility check disconnected and connected', async () => {
