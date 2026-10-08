@@ -1,5 +1,9 @@
 # eventbadges — app
 
+The contract now has a [verified synthetic testnet demonstration](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/TESTNET_DEMONSTRATION.md).
+The browser app has not been deployed or tested with a real wallet. No real pilot
+or production readiness is claimed.
+
 A small web app for **attendance badges** on Stellar testnet. An organizer
 records an event with a badge cap and a claim deadline, generates one secret
 claim code per attendee, commits them together as one Merkle root, and shares

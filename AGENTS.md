@@ -1,5 +1,13 @@
 # AGENTS.md
 
+## Authorized contract demonstration — October 8, 2026
+
+The maintainer explicitly authorized a synthetic testnet contract demonstration.
+Its deployment is verified; see the [contract record](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/TESTNET_DEMONSTRATION.md).
+Real-pilot partner gates remain in force. The app has not completed a real-wallet
+business-flow test. Earlier blanket “not deployed” statements refer to the state
+before this narrow exception.
+
 Rules for any AI agent working in this repository. Read this file at the start of every task.
 
 ## Project context
