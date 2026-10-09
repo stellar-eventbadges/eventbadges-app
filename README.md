@@ -6,7 +6,7 @@
 </picture>
 
 The contract now has a [verified synthetic testnet demonstration](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/TESTNET_DEMONSTRATION.md).
-The [hosted testnet demo](https://eventbadges-testnet.vercel.app) lets you explore
+The [hosted testnet demo](https://eventbadges-testnet-xteesamz.vercel.app) lets you explore
 the app. A real browser-wallet business flow has not been completed. No real pilot,
 audit or production readiness is claimed.
 

@@ -4,7 +4,7 @@
 
 The maintainer authorized agent-managed Vercel hosting and a premium landing-page
 and workspace redesign for the existing synthetic testnet demonstration.
-The hosted app is https://eventbadges-testnet.vercel.app.
+The hosted app is https://eventbadges-testnet-xteesamz.vercel.app.
 This narrow authorization overrides older human-only frontend hosting rules
 for this work; real-pilot requirements and testnet-only safeguards remain.
 Browser-wallet business flows have not yet been validated. The hosted frontend
