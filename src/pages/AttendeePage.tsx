@@ -45,6 +45,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
     return (
       <section>
         <h1>Claim your badge</h1>
+        <p>Keep a record of being there. Have your organizer’s event id and claim ticket ready; you can paste the ticket or scan its QR code.</p>
+        <p className="workspace-step">Connect your wallet, add your ticket, then review and sign.</p>
         <ConnectPrompt wallet={wallet} />
       </section>
     );
@@ -175,6 +177,8 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           </button>
         )}
 
+        <details className="advanced-input" open={fieldErrors.claimProof != null || undefined}>
+        <summary>Have a separate claim proof?</summary>
         <Field
           id="claimProof"
           label="Claim proof (optional)"
@@ -185,6 +189,7 @@ export function AttendeePage({ client, config, wallet }: PageProps) {
           hint="Only if your organizer shared the proof apart from the code — a pasted ticket brings its own. Leave it empty only if the event has a single attendee."
           error={fieldErrors.claimProof}
         />
+        </details>
 
         <PrivacyNotice
           acknowledged={acknowledged}

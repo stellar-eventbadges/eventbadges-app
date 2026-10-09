@@ -1,5 +1,15 @@
 # AGENTS.md
 
+## Authorized hosted frontend demonstration - October 9, 2026
+
+The maintainer authorized agent-managed Vercel hosting and a premium landing-page
+and workspace redesign for the existing synthetic testnet demonstration.
+The hosted app is https://eventbadges-testnet.vercel.app.
+This narrow authorization overrides older human-only frontend hosting rules
+for this work; real-pilot requirements and testnet-only safeguards remain.
+Browser-wallet business flows have not yet been validated. The hosted frontend
+and verified contract demonstration do not establish a community pilot.
+
 ## Authorized contract demonstration — October 8, 2026
 
 The maintainer explicitly authorized a synthetic testnet contract demonstration.

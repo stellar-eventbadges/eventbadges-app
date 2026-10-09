@@ -6,8 +6,9 @@
 </picture>
 
 The contract now has a [verified synthetic testnet demonstration](https://github.com/stellar-eventbadges/eventbadges-contracts/blob/main/docs/TESTNET_DEMONSTRATION.md).
-The browser app has not been deployed or tested with a real wallet. No real pilot
-or production readiness is claimed.
+The [hosted testnet demo](https://eventbadges-testnet.vercel.app) lets you explore
+the app. A real browser-wallet business flow has not been completed. No real pilot,
+audit or production readiness is claimed.
 
 A small web app for **attendance badges** on Stellar testnet. An organizer
 records an event with a badge cap and a claim deadline, generates one secret
@@ -17,9 +18,24 @@ Attendees claim a badge bound to their own address; the contract has no way to
 move a badge, which is what makes the proof worth something. Anyone can verify
 that an address holds a badge for an event, with no wallet at all.
 
-> **Status: v0 UI implemented (testnet only, never deployed, no pilot yet).**
-> Nothing here has touched a real wallet or a real network. The contract id is
-> a placeholder until a real organizer agrees to a pilot.
+> **Status: hosted testnet UI and verified synthetic contract demonstration.**
+> Browser-wallet business flows remain unverified. No real pilot or audit yet.
+
+## Start with your task
+
+The landing page introduces the attendance flow with an original local badge
+sculpture. **Claim a badge** opens the attendee workspace; **Organize an event**
+opens the organizer workspace; **Verify attendance** opens a read-only check
+without requesting a wallet signature. The header navigation keeps each task
+available throughout. Organizer and attendee actions require connecting a
+testnet wallet before their forms become available.
+
+Organizer task links jump to creation, management and revocation without
+resetting form state. Attendees can paste or scan their ticket, reveal the separate
+proof field when needed, then acknowledge the unchanged privacy notice before
+claiming. Details about public records, deployment evidence and limitations live
+in a keyboard-accessible disclosure on the landing page. No fonts, images or
+scripts are fetched from third-party hosts for this design.
 
 Part of the eventbadges project, which is three repositories:
 [`eventbadges-contracts`](https://github.com/stellar-eventbadges/eventbadges-contracts)
@@ -94,8 +110,8 @@ npm run dev
 
 `.env` is git-ignored and must never be committed. Every value the app reads is
 documented in [.env.example](.env.example), and it is read in exactly one place,
-[src/config.ts](src/config.ts). Until a contract is deployed, the contract id
-stays a placeholder and the app shows the configuration notice.
+[src/config.ts](src/config.ts). Set the id of the verified testnet deployment
+you intend to inspect; missing or invalid configuration shows the configuration notice.
 
 ## Checks
 
@@ -203,14 +219,15 @@ Read this before trusting the app with anything.
   the dev server): the badge mark, rendered from the app's own `BadgeCard` for
   several badges, and the opt-in CSV, whose button made the browser write
   `eventbadges-7-2026-10-05.csv` with the expected bytes. Both used records
-  injected into the page — no contract is deployed, so no screen has yet shown
-  a record read off a real network.
+  injected into the page. At the time of those dated observations, no contract
+  was deployed; they did not show records read from a real network.
 
 **Assumed — written, reviewed, never exercised against the real thing:**
 
-- **Every contract call.** No contract is deployed, so no `get_event`,
-  `has_badge`, `badges_of`, `create_event`, `claim`, `award` or `revoke` has
-  ever run against the real contract. The client follows the SDK's standard
+- **Browser contract calls remain unverified.** The deployed synthetic contract
+  demonstration uses the CLI; no browser `get_event`,
+  `has_badge`, `badges_of`, `create_event`, `claim`, `award` or `revoke` call
+  has completed a verified browser-wallet flow. The client follows the SDK's standard
   flow and the ABI in `src/lib.rs`, but that is review, not proof. Draft 08 is
   the plan to change this.
 - **Every wallet interaction.** No wallet has ever signed anything through this

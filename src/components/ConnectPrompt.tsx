@@ -11,8 +11,9 @@ export function ConnectPrompt({ wallet }: { wallet: WalletController }) {
     <div className="notice">
       <p className="notice-title">Connect a wallet first</p>
       <p>
-        The app uses your wallet&rsquo;s public address to read and send to the contract. It never
-        asks for a secret key or seed phrase, and it cannot do anything without your wallet.
+        Your public wallet address is where your badge or event will be recorded. Connect a
+        Stellar wallet on testnet to continue. The app never asks for a secret key or seed phrase.
+        You review and sign each action in your wallet.
       </p>
       <button type="button" onClick={() => void wallet.connect()} disabled={wallet.connecting}>
         {wallet.connecting ? 'Connecting…' : 'Connect wallet'}

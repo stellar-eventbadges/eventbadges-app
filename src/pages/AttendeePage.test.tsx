@@ -202,6 +202,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code or ticket'), CODE);
+    await user.click(view.getByText('Have a separate claim proof?'));
     await user.type(view.getByLabelText('Claim proof (optional)'), sibling);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
@@ -219,6 +220,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code or ticket'), CODE);
+    await user.click(view.getByText('Have a separate claim proof?'));
     await user.type(view.getByLabelText('Claim proof (optional)'), 'not-a-hash');
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));
@@ -258,6 +260,7 @@ describe('<AttendeePage />', () => {
 
     await user.type(view.getByLabelText('Event id'), '1');
     await user.type(view.getByLabelText('Claim code or ticket'), `${CODE}:${ticketProof}`);
+    await user.click(view.getByText('Have a separate claim proof?'));
     await user.type(view.getByLabelText('Claim proof (optional)'), staleProof);
     await acknowledge(user, view);
     await user.click(view.getByRole('button', { name: 'Claim my badge' }));

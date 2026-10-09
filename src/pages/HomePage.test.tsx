@@ -1,43 +1,40 @@
 // @vitest-environment happy-dom
-import { describe, expect, it } from 'vitest';
-
-import {
-  pagePropsFactory,
-  renderOnly,
-  renderWithA11y,
-  textOf,
-  walletFactory,
-} from '../test/render';
-
+import { fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { pagePropsFactory, renderOnly, renderWithA11y, textOf, walletFactory } from '../test/render';
 import { HomePage } from './HomePage';
 
 describe('<HomePage />', () => {
-  it('explains who the app is for and what each screen does', () => {
-    const view = renderOnly(<HomePage {...pagePropsFactory({ wallet: walletFactory({ address: null }) })} />);
-    const text = textOf(view.container);
-    expect(text).toContain('Attendance badges that cannot be faked or sold');
-    expect(text).toContain('Organizer:');
-    expect(text).toContain('Attendee:');
-    expect(text).toContain('verify that an address holds a badge');
+  it('takes each entry action to its existing workspace without connecting a wallet', () => {
+    const onNavigate = vi.fn();
+    const connect = vi.fn(async () => {});
+    const view = renderOnly(<HomePage {...pagePropsFactory({ wallet: walletFactory({ address: null, connect }) })} onNavigate={onNavigate} />);
+    fireEvent.click(view.getByRole('button', { name: 'Claim a badge' }));
+    fireEvent.click(view.getByRole('button', { name: 'Verify attendance' }));
+    fireEvent.click(view.getByRole('button', { name: 'Organize an event' }));
+    expect(onNavigate.mock.calls).toEqual([['attendee'], ['verify'], ['organizer']]);
+    expect(connect).not.toHaveBeenCalled();
   });
 
-  it('states plainly what has not happened yet', () => {
+  it('distinguishes synthetic deployment from unverified browser-wallet and pilot flows', () => {
     const view = renderOnly(<HomePage {...pagePropsFactory()} />);
     const text = textOf(view.container);
-    expect(text).toContain('What has not happened yet');
+    expect(text).toContain('verified synthetic testnet demonstration');
+    expect(text).toContain('Real browser-wallet flows are still pending');
     expect(text).toContain('No pilot has happened');
-    expect(text).toContain('no flow here has been exercised end to end yet');
     expect(text).toContain('no security review or audit');
+    expect(text).toContain('does not establish a person’s identity');
+    expect(text).toContain('QR scanning');
   });
 
-  it('shows the configured contract id and a connect button', () => {
-    const view = renderOnly(
-      <HomePage {...pagePropsFactory({ wallet: walletFactory({ address: null }) })} />,
-    );
-    const text = textOf(view.container);
-    expect(text).toContain('Contract:');
-    // Disconnected, both the header bar and the prompt offer to connect.
-    expect(view.getAllByRole('button', { name: 'Connect wallet' }).length).toBe(2);
+  it('places the configured contract and prototype details in a keyboard-accessible disclosure', () => {
+    const props = pagePropsFactory();
+    const view = renderOnly(<HomePage {...props} />);
+    const disclosure = view.container.querySelector('details');
+    expect(disclosure?.open).toBe(false);
+    expect(disclosure?.querySelector('summary')).not.toBeNull();
+    expect(disclosure?.textContent).toContain(props.config.contractId);
+    expect(view.queryByRole('button', { name: 'Connect wallet' })).toBeNull();
   });
 
   it('passes the accessibility check connected and disconnected', async () => {

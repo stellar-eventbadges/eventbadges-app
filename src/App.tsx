@@ -80,8 +80,8 @@ export default function App() {
         </ul>
       </nav>
 
-      <main id="main" ref={mainRef} tabIndex={-1}>
-        {page === 'home' && <HomePage {...pageProps} />}
+      <main id="main" className={page === 'home' ? 'landing-main' : 'workspace-main'} ref={mainRef} tabIndex={-1}>
+        {page === 'home' && <HomePage {...pageProps} onNavigate={setPage} />}
         {page === 'organizer' && <OrganizerPage {...pageProps} />}
         {page === 'attendee' && <AttendeePage {...pageProps} />}
         {page === 'verify' && <VerifyPage {...pageProps} />}
@@ -93,8 +93,8 @@ export default function App() {
 
       <footer>
         <p className="hint">
-          Testnet only. Not audited. No pilot has happened yet, and nothing is deployed until a real
-          organizer agrees to try it.
+          Synthetic contract demonstration deployed on testnet. Browser-wallet flows pending.
+          Not audited. No pilot yet.
         </p>
       </footer>
     </>

@@ -69,6 +69,8 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
     return (
       <section>
         <h1>Organizer</h1>
+        <p>Create a place for your community’s attendance. Set the badge limit and deadline, then share one ticket with each attendee.</p>
+        <p className="workspace-step">First, connect the wallet that will manage your event.</p>
         <ConnectPrompt wallet={wallet} />
       </section>
     );
@@ -237,7 +239,13 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
         the only address that can award or revoke badges for it.
       </p>
 
-      <fieldset disabled={busy} aria-busy={createAction.busy}>
+      <nav className="task-shortcuts" aria-label="Organizer tasks">
+        <a href="#create-event">Create an event</a>
+        <a href="#manage-event">Manage an event</a>
+        <a href="#revoke-badge">Revoke a badge</a>
+      </nav>
+
+      <fieldset id="create-event" disabled={busy} aria-busy={createAction.busy}>
         <legend>Create an event</legend>
 
         <Field
@@ -356,7 +364,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
         )}
       </fieldset>
 
-      <fieldset disabled={busy}>
+      <fieldset id="manage-event" disabled={busy}>
         <legend>Manage an event</legend>
 
         <Field
@@ -417,7 +425,7 @@ export function OrganizerPage({ client, config, wallet }: PageProps) {
         )}
       </fieldset>
 
-      <fieldset disabled={busy}>
+      <fieldset id="revoke-badge" disabled={busy}>
         <legend>Revoke a badge</legend>
         <p className="hint">
           Removes a badge issued in error. Works at any time, even after the deadline.

@@ -49,7 +49,32 @@ production-output scan found no reviewed unused-wallet markers (`metamask`,
 `stream-json`). This scan supports the module allow-list review; it is not
 an audit or proof that every dependency is safe.
 
-Remote CI,
-real wallet connection/signing, deployed-contract reads/writes and organizer
-pilot outcomes remain unverified. Deployment requires the documented real
-organizer pilot gate and a human-run deployment.
+The contract now has a verified synthetic testnet deployment, and a hosted
+browser demo exists. Real wallet connection/signing and organizer pilot outcomes
+remain unverified. The historical local checks above do not establish those
+outcomes. Real pilots retain the documented organizer and human review gates.
+
+## Editorial landing and workspace review (2026-10-09)
+
+The redesign changes presentation and task entry only: a local sculptural SVG,
+magenta controls, editorial type, direct attendee/organizer/verify entry buttons,
+organizer in-page task links and an optional-proof disclosure. Contract calls,
+wallet/network gates, validation, canonical errors, claim-code generation,
+ticket lifetime and privacy acknowledgement logic remain unchanged.
+
+Before/after screenshots, computed typography, batch diffs and browser results
+are recorded in the workspace's `submission/design/eventbadges/` with the
+numbered audit at `submission/eventbadges-design-audit.md`. Screenshots of
+connected forms use synthetic offline page fixtures; they are not wallet or
+contract operation evidence.
+
+Validation: lint and strict typecheck passed; the production build passed with
+the pre-existing large-chunk warning. Full suite:36 files,314 tests passed in
+212.26 seconds. After the final proof-disclosure refinement, the two affected
+page suites passed26 tests in44.13 seconds; lint/typecheck/build were rerun.
+Browser axe found no violations and no horizontal overflow at320,390,768 and
+1440px on the landing, Verify, and offline synthetic organizer/attendee forms.
+A720px layout checks the equivalent of200% zoom on1440px. Keyboard focus,
+reduced-motion transitions, local assets and the expanded prototype disclosure
+were checked. Measured solid text pairs have contrast of at least5.17:1; the
+caption over the sculptural SVG was visually reviewed.
