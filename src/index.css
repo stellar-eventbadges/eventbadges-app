@@ -649,3 +649,7 @@ main.notice {
     animation: none !important;
   }
 }
+
+/* Local project identity; text keeps the accessible name. */
+.brand-identity { display: inline-flex; align-items: center; gap: .65rem; font-weight: 700; }
+.brand-mark { display: block; width: 36px; height: 36px; flex: 0 0 36px; }

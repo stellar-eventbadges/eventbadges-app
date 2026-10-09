@@ -44,6 +44,7 @@ export default function App() {
     return (
       <>
         <TestnetBanner />
+        <header className="app-header"><p className="app-title brand-identity"><img className="brand-mark" src="/brand/mark.svg" width="36" height="36" alt="" aria-hidden="true" />eventbadges</p></header>
         <ConfigNotice problems={configResult.ok ? [] : configResult.problems} />
       </>
     );
@@ -59,7 +60,7 @@ export default function App() {
       <TestnetBanner />
 
       <header className="app-header">
-        <p className="app-title">eventbadges</p>
+        <p className="app-title brand-identity"><img className="brand-mark" src="/brand/mark.svg" width="36" height="36" alt="" aria-hidden="true" />eventbadges</p>
         <WalletBar wallet={wallet} />
       </header>
 
