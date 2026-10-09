@@ -28,8 +28,8 @@ Rules for any AI agent working in this repository. Read this file at the start o
 - **One builder.** There is no team; write for a solo maintainer.
 - **Pilot users are real people**, not developers — community organizers and attendees.
 - **Never put attendee names, phone numbers, emails or IDs on-chain. Opaque references or hashes only.** The [docs book](https://github.com/stellar-eventbadges/eventbadges-docs) has the field-by-field privacy inventory.
-- **No deployment until a real organizer or chapter has agreed to try the flow.** The pilot gate lives in the contracts repo's `ROADMAP.md`. The contract id in `.env` is the human's to set, after a real deployment.
-- **Pilot honesty:** no `eventbadges` contract is deployed and no pilot has happened. Never invent users, partners, addresses, hashes or outcomes.
+- **A synthetic testnet demonstration is already deployed.** Any real-user pilot still requires an organizer or chapter to agree to try the flow; follow the pilot gate in the contracts repo's `ROADMAP.md`. Keep network and contract configuration in environment variables.
+- **Pilot honesty:** a synthetic testnet contract demonstration is deployed, but no pilot has happened. Never invent users, partners, addresses, hashes or outcomes.
 
 ## Source of truth
 
